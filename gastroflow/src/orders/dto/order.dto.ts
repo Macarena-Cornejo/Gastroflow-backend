@@ -14,6 +14,10 @@ export class AddItemDto {
     @IsUUID()
     menuItemId!: string;
     
+    @IsString()
+    @Max(30)
+    name!:string;
+
     @Type(() => Number)
     @IsInt()
     @Min(1)

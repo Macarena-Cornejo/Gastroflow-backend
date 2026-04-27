@@ -1,8 +1,7 @@
-import { Column, CreateDateColumn, DeleteDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, CreateDateColumn, DeleteDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn} from "typeorm";
 import { Reservation } from "../../reservations/entities/reservation.entity";
 import { User } from "../../users/entities/user.entity";
 import { OrderStatus } from "../../common/order.enum";
-import { UpdateDateColumn } from "typeorm/browser";
 import { OrderItem } from "./order_item";
 import { RestaurantTables } from "../../restaurant_tables/entities/restaurant_table.entity";
 import { Restaurant } from "../../restaurants/entities/restaurant.entity";
