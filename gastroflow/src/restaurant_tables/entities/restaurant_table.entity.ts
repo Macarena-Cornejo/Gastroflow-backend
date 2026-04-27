@@ -50,7 +50,7 @@ export class RestaurantTables {
     enum: RestaurantTableStatus,
     default: RestaurantTableStatus.AVAILABLE,
   })
-  status!: string;
+  status!: RestaurantTableStatus;
 
   @Column({
     default: true,

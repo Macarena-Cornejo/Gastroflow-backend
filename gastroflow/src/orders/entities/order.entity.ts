@@ -1,76 +1,51 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
-import { Restaurant } from '../../restaurants/entities/restaurant.entity';
-import { RestaurantTables } from '../../restaurant_tables/entities/restaurant_table.entity';
-import { User } from '../../users/entities/user.entity';
-import { OrderStatus } from '../enums/order-status.enum';
+import { Column, CreateDateColumn, DeleteDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn} from "typeorm";
+import { Reservation } from "../../reservations/entities/reservation.entity";
+import { User } from "../../users/entities/user.entity";
+import { OrderStatus } from "../../common/order.enum";
+import { OrderItem } from "./order_item";
+import { RestaurantTables } from "../../restaurant_tables/entities/restaurant_table.entity";
+import { Restaurant } from "../../restaurants/entities/restaurant.entity";
 
-@Entity({
-  name: 'ORDERS',
-})
+@Entity({ name: 'ORDERS' })
 export class Order {
-  @PrimaryGeneratedColumn('uuid')
-  id!: string;
+    @PrimaryGeneratedColumn('uuid')
+    id!: string;
 
-  @ManyToOne(() => Restaurant, (restaurant) => restaurant.orders)
-  @JoinColumn({ name: 'restaurant_id' })
-  restaurant!: Restaurant;
+    @ManyToOne(() => Restaurant, (restaurant) => restaurant.orders)
+    @JoinColumn({ name: 'restaurant_id' })
+    restaurant!: Restaurant;
 
-  @ManyToOne(() => RestaurantTables, (table) => table.orders)
-  @JoinColumn({ name: 'table_id' })
-  table!: RestaurantTables;
 
-  @ManyToOne(() => User, (user) => user.orders, { nullable: true })
-  @JoinColumn({ name: 'waiter_id' })
-  waiter?: User;
+    @ManyToOne(() => Reservation, { nullable: true })
+    @JoinColumn({ name: 'reservation_id' })
+    reservation?: Reservation;
 
-  @Column({
-    type: 'json',
-    nullable: false,
-  })
-  items!: Array<{
-    menuItemId: string;
-    name: string;
-    price: number;
-    quantity: number;
-    observations?: string;
-  }>;
+    @ManyToOne(() => User) 
+    @JoinColumn({ name: 'waiter_id' })
+    waiter!: User;
 
-  @Column({
-    type: 'decimal',
-    precision: 10,
-    scale: 2,
-    default: 0,
-  })
-  total_amount!: number;
+    @ManyToOne(() => RestaurantTables)
+    @JoinColumn({ name: 'table_id' })
+    table!: RestaurantTables;
 
-  @Column({
-    type: 'enum',
-    enum: OrderStatus,
-    default: OrderStatus.PENDING,
-  })
-  status!: OrderStatus;
+    @OneToMany(() => OrderItem, (item) => item.order, { cascade: true })
+    items!: OrderItem[];
 
-  @Column({
-    type: 'text',
-    nullable: true,
-  })
-  observations?: string;
+    @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.OPEN })
+    status!: OrderStatus;
 
-  @CreateDateColumn({
-    type: 'timestamp',
-  })
-  created_at!: Date;
+    @Column({ type: 'decimal', default: 0})
+    total!: number;
 
-  @UpdateDateColumn({
-    type: 'timestamp',
-  })
-  updated_at!: Date;
+    @Column({ default: true })
+    isActive!: boolean;
+
+    @CreateDateColumn()
+    created_at!: Date;
+
+    @UpdateDateColumn()
+    updated_at!: Date;
+
+    @DeleteDateColumn()
+    deleted_at!: Date;
 }

@@ -132,7 +132,7 @@ export class Restaurant {
 
   @OneToMany(() => Subscription, (subscription) => subscription.restaurant)
   subscriptions!: Subscription[];
-
+   
   //@OneToOne(() => RestaurantTheme, (theme) => theme.restaurant)
   //theme!: RestaurantTheme;
 
