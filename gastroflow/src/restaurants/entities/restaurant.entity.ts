@@ -14,6 +14,7 @@ import { Reservation } from '../../reservations/entities/reservation.entity';
 import { Subscription } from '../../subscriptions/entities/subscription.entity';
 //import { RestaurantTheme } from '../../restaurant-theme/entities/restaurant-theme.entity';
 import { Notification } from '../../notification/entities/notification.entity';
+import { Order } from '../../orders/entities/order.entity';
 @Entity({
   name: 'RESTAURANTS',
 })
@@ -24,6 +25,10 @@ export class Restaurant {
   //RELACION CON NOTIFICATION
   @OneToMany(() => Notification, (notification) => notification.restaurant)
   notifications!: Notification[];
+
+  //RELACION CON ORDERS
+  @OneToMany(() => Order, (order) => order.restaurant)
+  orders!: Order[];
 
   @Column({
     type: 'varchar',
