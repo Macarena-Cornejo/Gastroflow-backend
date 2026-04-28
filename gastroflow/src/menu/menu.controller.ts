@@ -54,7 +54,7 @@ export class MenuController {
 
   @Get('admin')
   @UseGuards(AuthGuard, RolesGuard)
-  @Role(UserRole.REST_ADMIN)
+  @Role(UserRole.REST_ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Obtener menú admin',
@@ -71,7 +71,7 @@ export class MenuController {
 
   @Post('categories')
   @UseGuards(AuthGuard, RolesGuard)
-  @Role(UserRole.REST_ADMIN)
+  @Role(UserRole.REST_ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Crear categoría del menú' })
   createCategory(@Body() dto: CreateMenuCategoryDto) {
@@ -96,7 +96,7 @@ export class MenuController {
 
   @Patch('categories/:id')
   @UseGuards(AuthGuard, RolesGuard)
-  @Role(UserRole.REST_ADMIN)
+  @Role(UserRole.REST_ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Actualizar categoría del menú' })
   @ApiParam({
@@ -112,7 +112,7 @@ export class MenuController {
 
   @Delete('categories/:id')
   @UseGuards(AuthGuard, RolesGuard)
-  @Role(UserRole.REST_ADMIN)
+  @Role(UserRole.REST_ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Desactivar categoría del menú',
@@ -133,7 +133,7 @@ export class MenuController {
 
   @Post('items')
   @UseGuards(AuthGuard, RolesGuard)
-  @Role(UserRole.REST_ADMIN)
+  @Role(UserRole.REST_ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Crear platillo del menú' })
   createItem(@Body() dto: CreateMenuItemDto) {
@@ -158,7 +158,7 @@ export class MenuController {
 
   @Patch('items/:id')
   @UseGuards(AuthGuard, RolesGuard)
-  @Role(UserRole.REST_ADMIN)
+  @Role(UserRole.REST_ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Actualizar platillo del menú' })
   @ApiParam({
@@ -174,7 +174,7 @@ export class MenuController {
 
   @Patch('items/:id/status')
   @UseGuards(AuthGuard, RolesGuard)
-  @Role(UserRole.REST_ADMIN)
+  @Role(UserRole.REST_ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Actualizar estado del platillo' })
   @ApiParam({
@@ -190,7 +190,7 @@ export class MenuController {
 
   @Delete('items/:id')
   @UseGuards(AuthGuard, RolesGuard)
-  @Role(UserRole.REST_ADMIN)
+  @Role(UserRole.REST_ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Eliminar platillo del menú' })
   @ApiParam({
@@ -207,7 +207,7 @@ export class MenuController {
 
   @Post('seed')
   @UseGuards(AuthGuard, RolesGuard)
-  @Role(UserRole.REST_ADMIN)
+  @Role(UserRole.REST_ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Cargar seed inicial del menú Bella Vita',
