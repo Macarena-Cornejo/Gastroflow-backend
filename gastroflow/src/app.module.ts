@@ -18,6 +18,7 @@ import { RestaurantTablesModule } from './restaurant_tables/restaurant_tables.mo
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { NotificationsModule } from './notification/notification.module';
 import { OrderModule } from './orders/order.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -26,6 +27,9 @@ import { OrderModule } from './orders/order.module';
       envFilePath: ['.env.development', '.env'],
       load: [typeOrmConfig, googleOauthConfig],
     }),
+
+    ScheduleModule.forRoot(),
+
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (ConfigService: ConfigService) =>
@@ -39,6 +43,7 @@ import { OrderModule } from './orders/order.module';
     MailModule,
     RestaurantTablesModule,
     ReservationsModule,
+    ReservationsPaymentModule,
     SubscriptionsModule,
     NotificationsModule,
     OrderModule,
