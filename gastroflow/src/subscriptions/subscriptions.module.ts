@@ -8,7 +8,7 @@ import { SubscriptionsCronService } from './subscriptions-cron.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Subscription, Restaurant])],
-  providers: [SubscriptionsService],
+  providers: [SubscriptionsService, SubscriptionsCronService],
   controllers: [SubscriptionsController],
   exports: [SubscriptionsService, SubscriptionsCronService],
 })
