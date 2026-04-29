@@ -9,6 +9,7 @@ import {
 
 export enum NotificationLogType {
   SUBSCRIPTION_REMINDER = 'SUBSCRIPTION_REMINDER',
+  RESTAURANT_APPROVED = 'RESTAURANT_APPROVED',
 }
 
 export enum NotificationLogStatus {

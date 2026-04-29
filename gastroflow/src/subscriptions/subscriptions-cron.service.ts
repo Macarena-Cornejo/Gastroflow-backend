@@ -25,7 +25,7 @@ export class SubscriptionsCronService {
     private readonly mailService: MailService,
   ) {}
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_DAY_AT_9AM)
   async handleSubscriptionReminders() {
     this.logger.log('Running subscription reminders cron...');
 
