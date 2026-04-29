@@ -19,6 +19,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { NotificationsModule } from './notification/notification.module';
 import { OrderModule } from './orders/order.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { SubscriptionPaymentModule } from './subscriptions_payments/subscription_payment.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     ReservationsModule,
     ReservationsPaymentModule,
     SubscriptionsModule,
+    SubscriptionPaymentModule,
     NotificationsModule,
     OrderModule,
     JwtModule.register({
