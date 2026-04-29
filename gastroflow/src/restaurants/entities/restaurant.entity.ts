@@ -26,6 +26,10 @@ export class Restaurant {
   @OneToMany(() => Notification, (notification) => notification.restaurant)
   notifications!: Notification[];
 
+  //RELACION CON ORDERS
+  @OneToMany(() => Order, (order) => order.restaurant)
+  orders!: Order[];
+
   @Column({
     type: 'varchar',
     length: 100,
@@ -128,12 +132,7 @@ export class Restaurant {
 
   @OneToMany(() => Subscription, (subscription) => subscription.restaurant)
   subscriptions!: Subscription[];
-  
-  @OneToMany(() => Order, (order) => order.restaurant, {
-    cascade: false,
-  })
-  orders!: Order[];
-
+   
   //@OneToOne(() => RestaurantTheme, (theme) => theme.restaurant)
   //theme!: RestaurantTheme;
 

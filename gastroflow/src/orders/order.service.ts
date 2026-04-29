@@ -86,8 +86,7 @@ export class OrderService{
         }
 
         const menuItem = await this.menuItemsRepository.findOne({
-            where: { id: menuItemId },
-            relations: ['restaurant'],
+        where: { id: menuItemId },
         });
 
         if (!menuItem) {
@@ -108,7 +107,7 @@ export class OrderService{
 
         await this.ordersItemsRepository.save(orderItem);
 
-        order.total += Number(menuItem.price) * Number(quantity);
+        order.total = Number(order.total) + Number(menuItem.price) * Number(quantity);
         await this.ordersRepository.save(order);
 
         return await this.ordersRepository.findOne({
@@ -138,12 +137,12 @@ export class OrderService{
             }
 
             if (status) {
-                const validTransitions = {
-                OPEN: ['IN_PROGRESS', 'READY_TO_PAY', 'CANCELLED'],
-                IN_PROGRESS: ['READY_TO_PAY', 'CANCELLED'],
-                READY_TO_PAY: ['PAID'],
-                PAID: [],
-                CANCELLED: [],
+                const validTransitions: Record<string, OrderStatus[]> = {
+                [OrderStatus.OPEN]: [OrderStatus.IN_PROGRESS, OrderStatus.READY_TO_PAY, OrderStatus.CANCELLED],
+                [OrderStatus.IN_PROGRESS]: [OrderStatus.READY_TO_PAY, OrderStatus.CANCELLED],
+                [OrderStatus.READY_TO_PAY]: [OrderStatus.PAID],
+                [OrderStatus.PAID]: [],
+                [OrderStatus.CANCELLED]: [],
                 };
 
                 if (!validTransitions[order.status]?.includes(status)) {
@@ -182,7 +181,7 @@ export class OrderService{
         }
 
         order.isActive = false;
-        order.status = OrderStatus.CANCELLED;
+        order.status = OrderStatus.READY_TO_PAY;
 
         return await this.ordersRepository.save(order);
     }
