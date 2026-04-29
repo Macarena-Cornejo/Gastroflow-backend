@@ -11,8 +11,8 @@ import { NotificationsModule } from '../notification/notification.module';
     TypeOrmModule.forFeature([
       Restaurant,
       RestaurantTheme,
-      NotificationsModule,
     ]),
+    NotificationsModule,
   ],
   controllers: [RestaurantController],
   providers: [RestaurantService],
