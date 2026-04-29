@@ -241,7 +241,6 @@ export class AuthController {
       userData.password,
     );
   }
-  s;
 
   @HttpCode(201)
   @Post('owner/onboarding')
