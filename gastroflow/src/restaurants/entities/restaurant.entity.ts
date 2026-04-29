@@ -15,6 +15,7 @@ import { Subscription } from '../../subscriptions/entities/subscription.entity';
 //import { RestaurantTheme } from '../../restaurant-theme/entities/restaurant-theme.entity';
 import { Notification } from '../../notification/entities/notification.entity';
 import { Order } from '../../orders/entities/order.entity';
+import { RestaurantVerificationStatus } from '../../common/restaurant-verification-status.enum';
 @Entity({
   name: 'RESTAURANTS',
 })
@@ -44,8 +45,8 @@ export class Restaurant {
     unique: true,
   })
   slug!: string;
- 
-   @Column({
+
+  @Column({
     type: 'text',
     nullable: true,
   })
@@ -109,7 +110,6 @@ export class Restaurant {
   })
   image_url!: string;
 
-
   @Column({
     type: 'text',
     nullable: true,
@@ -121,9 +121,35 @@ export class Restaurant {
   })
   is_active!: boolean;
 
+  @Column({
+    type: 'enum',
+    enum: RestaurantVerificationStatus,
+    enumName: 'restaurant_verification_status_enum',
+    default: RestaurantVerificationStatus.PENDING,
+  })
+  verification_status!: RestaurantVerificationStatus;
+
+  @Column({
+    type: 'text',
+    nullable: true,
+  })
+  verification_notes!: string | null;
+
+  @Column({
+    type: 'timestamp',
+    nullable: true,
+  })
+  verified_at!: Date | null;
+
+  @Column({
+    type: 'uuid',
+    nullable: true,
+  })
+  verified_by_user_id!: string | null;
+
   @OneToMany(() => User, (user) => user.restaurant)
   users!: User[];
-  
+
   @OneToMany(() => RestaurantTables, (table) => table.restaurant)
   tables!: RestaurantTables[];
 
