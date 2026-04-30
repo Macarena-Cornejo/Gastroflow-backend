@@ -1,7 +1,7 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import { IsInt, IsNotEmpty, IsNumber, IsString, IsUUID, Max, MaxLength, Min } from "class-validator";
-import { OrderStatus } from "../../common/order.enum";
+import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength, Min } from "class-validator";
+import { PaymentMethod } from "../../common/order.enum";
 
 export class OpenOrderDto {
     @ApiProperty()
@@ -13,21 +13,24 @@ export class OpenOrderDto {
 export class AddItemDto {
     @IsUUID()
     menuItemId!: string;
-    
+
     @IsString()
     @MaxLength(60)
-    name!:string;
+    name!: string;
 
     @Type(() => Number)
     @IsInt()
     @Min(1)
     quantity!: number;
 
+    @IsOptional()
     @IsString()
     @MaxLength(100)
     notes?: string;
 }
 
-export class UpdateOrderDto {
-  status?: OrderStatus;
+export class PayOrderDto {
+    @ApiProperty({ enum: PaymentMethod })
+    @IsEnum(PaymentMethod)
+    paymentMethod!: PaymentMethod;
 }
