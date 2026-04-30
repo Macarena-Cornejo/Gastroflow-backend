@@ -114,15 +114,22 @@ private async handleCheckoutCompleted(session: any) {
         );
         console.log('Mesa actualizada');
 
-        await this.reservationsPaymentRepository.update(
-            { reservation: { id: reservationId } },
-            {
-                status: PaymentStatus.COMPLETED,
-                transaction_id: session.payment_intent as string,
-                paid_at: new Date(),
-            }
-        );
-        console.log('Pago actualizado');
+        const payment = await this.reservationsPaymentRepository
+        .createQueryBuilder('payment')
+        .where('payment.reservation_id = :reservationId', { reservationId })
+        .getOne();
+
+        if (!payment) {
+            console.error('Pago no encontrado para reservationId:', reservationId);
+            return;
+        }
+
+        payment.status = PaymentStatus.COMPLETED;
+        payment.transaction_id = session.payment_intent as string;
+        payment.paid_at = new Date();
+
+        await this.reservationsPaymentRepository.save(payment);
+        console.log('Pago actualizado:', payment);
 
     } catch (error) {
         console.error('Error en handleCheckoutCompleted:', error);

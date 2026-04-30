@@ -20,9 +20,13 @@ import { NotificationsModule } from './notification/notification.module';
 import { OrderModule } from './orders/order.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SubscriptionPaymentModule } from './subscriptions_payments/subscription_payment.module';
+import { RestaurantVerificationModule } from './restaurant-verification/restaurant-verification.module';
+import { PlatformModule } from './plataform/platform.module';
 
 @Module({
   imports: [
+    PlatformModule  ,
+    RestaurantVerificationModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.development', '.env'],

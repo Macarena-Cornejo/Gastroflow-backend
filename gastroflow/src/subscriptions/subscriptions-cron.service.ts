@@ -1,45 +1,129 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, LessThanOrEqual, Repository } from 'typeorm';
 import { MailService } from '../mail/mail.service';
 import { Subscription } from './entities/subscription.entity';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { SubscriptionStatus } from './enums/subscription-status.enum';
+import {
+  NotificationLog,
+  NotificationLogStatus,
+  NotificationLogType,
+} from '../notification/entities/notification-log.entity';
 
 @Injectable()
 export class SubscriptionsCronService {
+  private readonly logger = new Logger(SubscriptionsCronService.name);
+
   constructor(
     @InjectRepository(Subscription)
-    private readonly subscriptionRepo: Repository<Subscription>,
+    private readonly subscriptionRepository: Repository<Subscription>,
+
+    @InjectRepository(NotificationLog)
+    private readonly notificationLogRepository: Repository<NotificationLog>,
+
     private readonly mailService: MailService,
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_9AM)
-  async handleSubscriptionRemnders() {
+  async handleSubscriptionReminders() {
+    this.logger.log('Running subscription reminders cron...');
+
+    await this.createReminderLogs();
+    await this.processPendingLogs();
+  }
+
+  private async createReminderLogs() {
     const today = new Date();
+    const reminderDate = new Date();
+    reminderDate.setDate(today.getDate() + 7);
 
-    const in3Days = new Date();
-    in3Days.setDate(today.getDate() + 3);
+    const subscriptions: Subscription[] =
+      await this.subscriptionRepository.find({
+        where: {
+          next_payment_date: Between(today, reminderDate),
+          status: SubscriptionStatus.ACTIVE,
+        },
+        relations: {
+          restaurant: true,
+        },
+      });
 
-    const subscriptions = await this.subscriptionRepo.find({
-      relations: ['restaurant'],
+    for (const subscription of subscriptions) {
+      const email = subscription.restaurant?.email;
+
+      if (!email || !subscription.next_payment_date) continue;
+
+      const log = this.notificationLogRepository.create({
+        type: NotificationLogType.SUBSCRIPTION_REMINDER,
+        target_id: subscription.id,
+        recipient_email: email,
+        scheduled_for: subscription.next_payment_date,
+        status: NotificationLogStatus.PENDING,
+      });
+
+      try {
+        await this.notificationLogRepository.save(log);
+      } catch {
+        this.logger.warn(
+          `Duplicate reminder skipped for subscription ${subscription.id}`,
+        );
+      }
+    }
+  }
+
+  private async processPendingLogs() {
+    const now = new Date();
+
+    const logs = await this.notificationLogRepository.find({
+      where: [
+        {
+          status: NotificationLogStatus.PENDING,
+        },
+        {
+          status: NotificationLogStatus.FAILED,
+          next_retry_at: LessThanOrEqual(now),
+        },
+      ],
+      take: 50,
+      order: {
+        created_at: 'ASC',
+      },
     });
 
-    for (const sub of subscriptions) {
-      if (!sub.end_date) continue;
+    for (const log of logs) {
+      if (log.attempts >= log.max_attempts) {
+        this.logger.warn(`Max attempts reached for notification log ${log.id}`);
+        continue;
+      }
 
-      const endDate = new Date(sub.end_date);
+      try {
+        await this.mailService.sendGenericNotification(
+          log.recipient_email,
+          'Recordatorio de suscripción',
+          'Tu suscripción está próxima a renovarse.',
+        );
 
-      const diffTime = endDate.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        log.status = NotificationLogStatus.SENT;
+        log.sent_at = new Date();
+        log.error_message = null;
+        log.next_retry_at = null;
 
-      if (diffDays === 3 || diffDays === 1) {
-        if (sub.restaurant?.email) {
-          await this.mailService.sendGenericNotification(
-            sub.restaurant.email,
-            'Tu suscripción está por vencer',
-            `Tu plan ${sub.plan_type} vence en ${diffDays} día(s).`,
-          );
-        }
+        await this.notificationLogRepository.save(log);
+        this.logger.log(`Subscription reminder sent to ${log.recipient_email}`);
+      } catch (error) {
+        log.attempts += 1;
+        log.status = NotificationLogStatus.FAILED;
+        log.error_message =
+          error instanceof Error ? error.message : 'Unknown error';
+
+        const retryMinutes = log.attempts * 15;
+        const nextRetry = new Date();
+        nextRetry.setMinutes(nextRetry.getMinutes() + retryMinutes);
+
+        log.next_retry_at = nextRetry;
+
+        await this.notificationLogRepository.save(log);
       }
     }
   }
