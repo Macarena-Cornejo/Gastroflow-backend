@@ -7,11 +7,12 @@ import { OrderController } from "./order.controller";
 import { OrderService } from "./order.service";
 import { User } from "../users/entities/user.entity";
 import { MenuItem } from "../menu/entities/menu-item.entity";
+import { OrderGateway } from "./gateways/order.gateway";
 
 @Module({
     imports: [TypeOrmModule.forFeature([Order, OrderItem, RestaurantTables, User, MenuItem])],
     controllers: [OrderController],
-    providers: [OrderService]
+    providers: [OrderService, OrderGateway]
 })
 
 export class OrderModule{}
