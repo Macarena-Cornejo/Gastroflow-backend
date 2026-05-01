@@ -16,9 +16,6 @@ export class SubscriptionPayment {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ type: 'uuid' })
-  subscription_id!: string;
-
   @ManyToOne(() => Subscription, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'subscription_id' })
   subscription!: Subscription;

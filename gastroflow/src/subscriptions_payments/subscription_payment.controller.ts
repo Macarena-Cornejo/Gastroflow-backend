@@ -37,7 +37,7 @@ export class SubscriptionsPaymentController {
     ) {
     console.log('Webhook de suscripción recibido');
 
-    const payload = req.body;
+    const payload = req.rawBody ?? req.body;
     if (!payload) throw new BadRequestException('No se recibió el body');
 
     if (!environment.STRIPE_WEBHOOK_SECRET_SUBSCRIPTIONS) {

@@ -54,8 +54,8 @@ export class SubscriptionsPaymentService {
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'subscription',
-      success_url: `${environment.FRONTEND_URL}/success`,
-      cancel_url: `${environment.FRONTEND_URL}`,
+      success_url: `${environment.FRONTEND_URL}/subscription/success`,
+      cancel_url: `${environment.FRONTEND_URL}/subscription/cancel`,
       metadata: {
         subscription_id: subscriptionId,
         interval,
