@@ -48,7 +48,6 @@ export class Reservation {
     type: 'varchar',
     length: 50,
     nullable: false,
-    unique: true,
   })
   customer_email!: string;
 
