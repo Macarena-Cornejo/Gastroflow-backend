@@ -33,7 +33,7 @@ export class SubscriptionPayment {
   transaction_id?: string;
 
   @Column({ type: 'varchar', nullable: true })
-  stripe_session_id?: string; // ← útil para rastrear la sesión de checkout
+  stripe_session_id?: string;  
 
   @Column({
     type: 'enum',

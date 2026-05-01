@@ -117,6 +117,7 @@ export class SubscriptionsPaymentService {
         start_date: now,
         end_date: endDate,
         next_payment_date: nextPaymentDate,
+        stripe_subscription_id: session.subscription,
       },
     );
 
@@ -131,12 +132,14 @@ export class SubscriptionsPaymentService {
   }
 
   private async handleSubscriptionCancelled(stripeSubscription: any) {
-    // Stripe pasa el client_reference_id o metadata según configuración
-    const subscriptionId = stripeSubscription.metadata?.subscription_id;
-    if (!subscriptionId) return;
+    const subscription = await this.subscriptionRepository.findOne({
+    where: { stripe_subscription_id: stripeSubscription.id }, // 👈
+    });
+
+    if (!subscription) return;
 
     await this.subscriptionRepository.update(
-      { id: subscriptionId },
+      { id: subscription.id },
       { status: SubscriptionStatus.CANCELLED },
     );
   }
