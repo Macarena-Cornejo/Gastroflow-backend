@@ -29,21 +29,26 @@ export class OrderGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleConnection(client: AuthenticatedSocket) {
     try {
-      const token = client.handshake.auth.token;
+      const token = (client.handshake.auth as { token?: string })?.token;
 
       if (!token) {
-        console.log('Cliente desconectado: sin token');
-        client.disconnect();
+        console.log('[WS] Cliente invitado conectado');
+        client.userId = 'guest';
+        client.restaurantId = undefined;
+        client.roles = ['GUEST'];
         return;
       }
 
-      const decoded = jwt.verify(token, this.jwtSecret) as any;
+      const decoded = jwt.verify(token, this.jwtSecret) as {
+        id: string;
+        restaurant_id?: string;
+        roles?: string[];
+      };
 
       client.userId = decoded.id;
       client.restaurantId = decoded.restaurant_id;
       client.roles = decoded.roles || [];
 
-      // Todos se unen a la sala del restaurante (fuente única de eventos)
       const restaurantRoom = `restaurant-${client.restaurantId}`;
       client.join(restaurantRoom);
 
@@ -51,7 +56,19 @@ export class OrderGateway implements OnGatewayConnection, OnGatewayDisconnect {
         `[WS] Conectado: ${client.userId} | Restaurante: ${client.restaurantId} | Roles: ${(client.roles || []).join(', ')}`,
       );
     } catch (error) {
-      console.error('[WS] Error en conexión:', error instanceof Error ? error.message : error);
+      const message = error instanceof Error ? error.message : String(error);
+
+      if (message === 'jwt expired' || message === 'invalid token') {
+        console.log(
+          '[WS] Token inválido/vencido. Cliente conectado como invitado',
+        );
+        client.userId = 'guest';
+        client.restaurantId = undefined;
+        client.roles = ['GUEST'];
+        return;
+      }
+
+      console.error('[WS] Error en conexión:', message);
       client.disconnect();
     }
   }
@@ -65,4 +82,3 @@ export class OrderGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(room).emit(event, payload);
   }
 }
-
