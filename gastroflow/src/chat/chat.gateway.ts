@@ -28,14 +28,21 @@ export class ChatGateway {
     let response =
       'Gracias por escribirnos. Puedo ayudarte con reservas, suscripciones o información de restaurantes.';
 
-    if (message.includes('suscrib')) {
+    // SUSCRIPCIONES
+    if (
+      message.includes('suscrib') ||
+      message.includes('pago') ||
+      message.includes('renov') ||
+      message.includes('plan')
+    ) {
       response =
-        'Para suscribirte, haz clic en “Registra tu negocio” y completa el formulario. Luego podrás elegir un plan.';
+        'Puedes gestionar el pago de tu suscripción desde el panel de administrador en la sección de suscripciones. Allí verás tu estado y fecha de renovación.';
     }
 
-    if (message.includes('reserva')) {
+    // RESERVAS
+    else if (message.includes('reserva') || message.includes('mesa')) {
       response =
-        'Para hacer una reserva, entra a Restaurantes, elige uno, selecciona mesa, fecha y confirma.';
+        'Para hacer una reserva, entra a Restaurantes, selecciona uno y elige fecha, hora y número de personas.';
     }
 
     client.emit('chat:message', {
