@@ -22,10 +22,11 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { SubscriptionPaymentModule } from './subscriptions_payments/subscription_payment.module';
 import { RestaurantVerificationModule } from './restaurant-verification/restaurant-verification.module';
 import { PlatformModule } from './plataform/platform.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
-    PlatformModule  ,
+    PlatformModule,
     RestaurantVerificationModule,
     ConfigModule.forRoot({
       isGlobal: true,
@@ -42,6 +43,7 @@ import { PlatformModule } from './plataform/platform.module';
     }),
     UsersModule,
     AuthModule,
+    ChatModule,
     FileUploadModule,
     MenuModule,
     RestaurantModule,
