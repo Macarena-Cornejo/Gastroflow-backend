@@ -116,6 +116,11 @@ export class UsersService {
     );
     if (!employee)
       throw new NotFoundException(`No existe empleado con id ${id}`);
+    await this.mailService.sendEmployeeCreatedEmail({
+      to: employee.email,
+      name: employee.first_name,
+      role: this.toEmployeeRole(employee.role),
+    });
 
     return this.toEmployeeResponse(employee);
   }
@@ -134,6 +139,13 @@ export class UsersService {
       employee.id,
       isActive,
     );
+    if (!isActive) {
+      await this.mailService.sendEmployeeDismissedEmail({
+        to: updatedEmployee.email,
+        name: updatedEmployee.first_name,
+        role: this.toEmployeeRole(updatedEmployee.role),
+      });
+    }
 
     return this.toEmployeeResponse(updatedEmployee);
   }

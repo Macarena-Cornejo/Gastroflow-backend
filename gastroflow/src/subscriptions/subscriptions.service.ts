@@ -89,6 +89,7 @@ export class SubscriptionsService {
     updateSubscriptionDto: UpdateSubscriptionDto,
   ): Promise<Subscription> {
     const subscription = await this.findOne(id);
+    const previousStatus = subscription.status;
 
     if (updateSubscriptionDto.plan_type !== undefined) {
       subscription.plan_type = updateSubscriptionDto.plan_type;
@@ -116,7 +117,22 @@ export class SubscriptionsService {
       subscription.auto_renew = updateSubscriptionDto.auto_renew;
     }
 
-    return await this.subscriptionsRepository.save(subscription);
+    const savedSubscription =
+      await this.subscriptionsRepository.save(subscription);
+
+    if (
+      previousStatus !== SubscriptionStatus.ACTIVE &&
+      savedSubscription.status === SubscriptionStatus.ACTIVE &&
+      savedSubscription.restaurant?.email
+    ) {
+      await this.mailService.sendSubscriptionReactivatedEmail({
+        to: savedSubscription.restaurant.email,
+        name: savedSubscription.restaurant.name,
+        planName: savedSubscription.plan_type,
+      });
+    }
+
+    return savedSubscription;
   }
 
   async remove(id: string): Promise<{ message: string }> {

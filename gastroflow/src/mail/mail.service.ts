@@ -227,4 +227,20 @@ export class MailService {
       },
     });
   }
+
+  async sendSubscriptionReactivatedEmail(data: {
+    to: string;
+    name: string;
+    planName: string;
+  }): Promise<void> {
+    await this.sendTemplateMail({
+      to: data.to,
+      subject: 'Suscripción reactivada',
+      template: 'subscription-reactivated',
+      context: {
+        name: data.name,
+        planName: data.planName,
+      },
+    });
+  }
 }

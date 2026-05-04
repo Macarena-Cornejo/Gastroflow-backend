@@ -8,8 +8,11 @@ import { SubscriptionStatus } from '../subscriptions/enums/subscription-status.e
 import { environment } from '../config/enviroment';
 import { SubscriptionPayment } from './entities/subscription_payment.entity';
 import { SubscriptionPaymentStatus } from '../common/subscription_payment.enum';
+import { MailService } from '../mail/mail.service';
 
-const stripe = new Stripe(environment.STRIPE_SECRET_KEY!, { apiVersion: '2026-03-25.dahlia' });
+const stripe = new Stripe(environment.STRIPE_SECRET_KEY!, {
+  apiVersion: '2026-03-25.dahlia',
+});
 
 // Map de PlanType + intervalo → Price ID de Stripe
 const STRIPE_PRICE_IDS: Record<string, string> = {
@@ -26,6 +29,7 @@ export class SubscriptionsPaymentService {
     private subscriptionPaymentRepository: Repository<SubscriptionPayment>,
     @InjectRepository(Subscription)
     private subscriptionRepository: Repository<Subscription>,
+    private readonly mailService: MailService,
   ) {}
 
   async stripeCheckout(
@@ -42,14 +46,16 @@ export class SubscriptionsPaymentService {
     const key = `${subscription.plan_type}_${interval.toUpperCase()}`;
     const priceId = STRIPE_PRICE_IDS[key];
 
-    if (!priceId) throw new NotFoundException(`Price ID no encontrado para ${key}`);
+    if (!priceId)
+      throw new NotFoundException(`Price ID no encontrado para ${key}`);
 
-    const amount = {
-      BASIC_MONTHLY: 50,
-      BASIC_YEARLY: 500,
-      PREMIUM_MONTHLY: 80,
-      PREMIUM_YEARLY: 800,
-    }[key] ?? 0;
+    const amount =
+      {
+        BASIC_MONTHLY: 50,
+        BASIC_YEARLY: 500,
+        PREMIUM_MONTHLY: 80,
+        PREMIUM_YEARLY: 800,
+      }[key] ?? 0;
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -129,11 +135,28 @@ export class SubscriptionsPaymentService {
         paid_at: new Date(),
       },
     );
+    const subscription = await this.subscriptionRepository.findOne({
+      where: { id: subscriptionId },
+      relations: ['restaurant'],
+    });
+
+    const payment = await this.subscriptionPaymentRepository.findOne({
+      where: { stripe_session_id: session.id },
+    });
+
+    if (subscription?.restaurant?.email && payment) {
+      await this.mailService.sendPaymentConfirmationEmail({
+        to: subscription.restaurant.email,
+        name: subscription.restaurant.name,
+        restaurantName: subscription.restaurant.name,
+        amount: payment.amount,
+      });
+    }
   }
 
   private async handleSubscriptionCancelled(stripeSubscription: any) {
     const subscription = await this.subscriptionRepository.findOne({
-    where: { stripe_subscription_id: stripeSubscription.id }, // 👈
+      where: { stripe_subscription_id: stripeSubscription.id }, // 👈
     });
 
     if (!subscription) return;
