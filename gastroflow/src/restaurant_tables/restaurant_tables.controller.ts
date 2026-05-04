@@ -6,7 +6,7 @@ import { UserRole } from '../common/user.enums';
 import { RolesGuard } from '../auth/guards/Role.guard';
 import { AuthGuard } from '../auth/guards/Auth.guard';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
-import { CreateTableDto } from './dto/restaurant_table.dto';
+import { CreateTableDto, UpdateTableDto, UpdateTablesLayoutDto } from './dto/restaurant_table.dto';
 
 @ApiBearerAuth()
 @Controller('restaurants/:restaurantId/tables')
@@ -114,6 +114,42 @@ export class RestaurantTablesController {
         @Body() newTableData: CreateTableDto
     ) {
     return await this.restaurantTablesService.createNewTable(restaurantId, newTableData);
+    }
+
+    @UseGuards(AuthGuard, RolesGuard)
+    @Role(UserRole.REST_ADMIN)
+    @ApiOperation({ summary: 'Actualizar layout de varias mesas' })
+    @ApiParam({ name: 'restaurantId', type: 'string', format: 'uuid' })
+    @ApiBody({ type: UpdateTablesLayoutDto })
+    @ApiResponse({ status: 200, description: 'Layout de mesas actualizado correctamente' })
+    @ApiResponse({ status: 401, description: 'No autorizado' })
+    @ApiResponse({ status: 403, description: 'Acceso denegado' })
+    @ApiResponse({ status: 404, description: 'Una o mas mesas no fueron encontradas' })
+    @Patch('layout')
+    async updateTablesLayout(
+        @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+        @Body() layoutData: UpdateTablesLayoutDto
+    ) {
+        return await this.restaurantTablesService.updateTablesLayout(restaurantId, layoutData);
+    }
+
+    @UseGuards(AuthGuard, RolesGuard)
+    @Role(UserRole.REST_ADMIN)
+    @ApiOperation({ summary: 'Actualizar datos de una mesa' })
+    @ApiParam({ name: 'restaurantId', type: 'string', format: 'uuid' })
+    @ApiParam({ name: 'tableId', type: 'string', format: 'uuid' })
+    @ApiBody({ type: UpdateTableDto })
+    @ApiResponse({ status: 200, description: 'Mesa actualizada correctamente' })
+    @ApiResponse({ status: 401, description: 'No autorizado' })
+    @ApiResponse({ status: 403, description: 'Acceso denegado' })
+    @ApiResponse({ status: 404, description: 'Mesa no encontrada' })
+    @Patch(':tableId')
+    async updateTable(
+        @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+        @Param('tableId', ParseUUIDPipe) tableId: string,
+        @Body() tableData: UpdateTableDto
+    ) {
+        return await this.restaurantTablesService.updateTable(restaurantId, tableId, tableData);
     }
 
     @UseGuards(AuthGuard, RolesGuard)
