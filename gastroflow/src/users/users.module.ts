@@ -10,7 +10,10 @@ import { MailModule } from '../mail/mail.module';
 import { Reservation } from '../reservations/entities/reservation.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, PasswordResetToken, Reservation]), MailModule],
+  imports: [
+    TypeOrmModule.forFeature([User, PasswordResetToken, Reservation]),
+    MailModule,
+  ],
   controllers: [UsersController, EmployeesController],
   providers: [UsersService, UsersRepository],
   exports: [UsersRepository],

@@ -9,6 +9,7 @@ import {
 } from './dto/subscription.dto';
 import { Restaurant } from '../restaurants/entities/restaurant.entity';
 import { SubscriptionStatus } from './enums/subscription-status.enum';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class SubscriptionsService {
@@ -18,6 +19,8 @@ export class SubscriptionsService {
 
     @InjectRepository(Restaurant)
     private readonly restaurantsRepository: Repository<Restaurant>,
+
+    private readonly mailService: MailService,
   ) {}
 
   async create(
@@ -49,17 +52,17 @@ export class SubscriptionsService {
 
   async findByRestaurant(restaurantId: string): Promise<Subscription | null> {
     const subscription = await this.subscriptionsRepository.findOne({
-        where: {
-            restaurant: { id: restaurantId },
-            status: SubscriptionStatus.ACTIVE,
-        },
-        relations: ['restaurant'],
-        order: { created_at: 'DESC' },
+      where: {
+        restaurant: { id: restaurantId },
+        status: SubscriptionStatus.ACTIVE,
+      },
+      relations: ['restaurant'],
+      order: { created_at: 'DESC' },
     });
 
     if (!subscription) throw new NotFoundException('No hay suscripción activa');
     return subscription;
-}
+  }
 
   async findAll(): Promise<Subscription[]> {
     return await this.subscriptionsRepository.find({
@@ -118,7 +121,16 @@ export class SubscriptionsService {
 
   async remove(id: string): Promise<{ message: string }> {
     const subscription = await this.findOne(id);
+
     await this.subscriptionsRepository.softRemove(subscription);
+
+    if (subscription.restaurant?.email) {
+      await this.mailService.sendSubscriptionCancelledEmail({
+        to: subscription.restaurant.email,
+        name: subscription.restaurant.name,
+        planName: subscription.plan_type,
+      });
+    }
 
     return { message: 'Suscripción eliminada correctamente' };
   }

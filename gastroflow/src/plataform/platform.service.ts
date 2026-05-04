@@ -5,6 +5,7 @@ import { Restaurant } from '../restaurants/entities/restaurant.entity';
 import { RestaurantVerificationDocument } from '../restaurant-verification/entities/restaurant-verification-document.entity';
 import { RestaurantVerificationStatus } from '../common/restaurant-verification-status.enum';
 import { PlatformReviewRestaurantDto } from './dto/platform-review-restaurant.dto';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class PlatformService {
@@ -14,6 +15,8 @@ export class PlatformService {
 
     @InjectRepository(RestaurantVerificationDocument)
     private readonly documentRepository: Repository<RestaurantVerificationDocument>,
+
+    private readonly mailService: MailService,
   ) {}
 
   async getPendingRestaurants() {
@@ -80,7 +83,16 @@ export class PlatformService {
     restaurant.verified_at = new Date();
     restaurant.verified_by_user_id = platformUserId;
 
-    return await this.restaurantRepository.save(restaurant);
+    const savedRestaurant = await this.restaurantRepository.save(restaurant);
+
+    if (savedRestaurant.email) {
+      await this.mailService.sendRestaurantRejectedEmail({
+        to: savedRestaurant.email,
+        name: savedRestaurant.name,
+        notes: dto.notes,
+      });
+    }
+    return savedRestaurant;
   }
 
   async suspendRestaurant(
@@ -96,7 +108,16 @@ export class PlatformService {
     restaurant.verified_at = new Date();
     restaurant.verified_by_user_id = platformUserId;
 
-    return await this.restaurantRepository.save(restaurant);
+    const savedRestaurant = await this.restaurantRepository.save(restaurant);
+
+    if (savedRestaurant.email) {
+      await this.mailService.sendRestaurantSuspendedEmail({
+        to: savedRestaurant.email,
+        name: savedRestaurant.name,
+        notes: dto.notes,
+      });
+    }
+    return savedRestaurant;
   }
 
   private async findRestaurantOrFail(restaurantId: string) {
