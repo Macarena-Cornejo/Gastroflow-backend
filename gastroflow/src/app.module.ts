@@ -23,6 +23,7 @@ import { SubscriptionPaymentModule } from './subscriptions_payments/subscription
 import { RestaurantVerificationModule } from './restaurant-verification/restaurant-verification.module';
 import { PlatformModule } from './plataform/platform.module';
 import { ChatModule } from './chat/chat.module';
+import { CashRegisterModule } from './cash-register/cash-register.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { ChatModule } from './chat/chat.module';
     SubscriptionPaymentModule,
     NotificationsModule,
     OrderModule,
+    CashRegisterModule,
     JwtModule.register({
       global: true,
       signOptions: { expiresIn: '60m' },
