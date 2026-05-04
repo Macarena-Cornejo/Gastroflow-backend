@@ -153,6 +153,7 @@ export class RestaurantService {
         rating: true,
         image_url: true,
         about: true,
+        layout_markers: true,
       },
     });
 
