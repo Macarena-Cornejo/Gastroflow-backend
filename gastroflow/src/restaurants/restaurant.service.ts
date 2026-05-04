@@ -182,6 +182,7 @@ export class RestaurantService {
         image_url: true,
         about: true,
         is_active: true,
+        layout_markers: true,
       },
       order: {
         created_at: 'DESC',
