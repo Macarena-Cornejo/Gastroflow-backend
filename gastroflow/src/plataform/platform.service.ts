@@ -1,11 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+
 import { Restaurant } from '../restaurants/entities/restaurant.entity';
 import { RestaurantVerificationDocument } from '../restaurant-verification/entities/restaurant-verification-document.entity';
 import { RestaurantVerificationStatus } from '../common/restaurant-verification-status.enum';
 import { PlatformReviewRestaurantDto } from './dto/platform-review-restaurant.dto';
+
 import { MailService } from '../mail/mail.service';
+
+import { Subscription } from '../subscriptions/entities/subscription.entity';
+import { SubscriptionStatus } from '../subscriptions/enums/subscription-status.enum';
+import { PlanType } from '../subscriptions/enums/plan-type.enum';
 
 @Injectable()
 export class PlatformService {
@@ -16,131 +22,108 @@ export class PlatformService {
     @InjectRepository(RestaurantVerificationDocument)
     private readonly documentRepository: Repository<RestaurantVerificationDocument>,
 
+    @InjectRepository(Subscription)
+    private readonly subscriptionRepository: Repository<Subscription>,
+
     private readonly mailService: MailService,
   ) {}
 
-  async getPendingRestaurants() {
-    return await this.restaurantRepository.find({
-      where: {
-        verification_status: RestaurantVerificationStatus.PENDING,
-      },
-      order: {
-        created_at: 'DESC',
-      },
+  async getPendingRestaurants(): Promise<Restaurant[]> {
+    return this.restaurantRepository.find({
+      where: { verification_status: RestaurantVerificationStatus.PENDING },
+      relations: ['verification_documents'],
     });
   }
 
-  async getRestaurantReviewDetail(restaurantId: string) {
+  async reviewRestaurant(
+    restaurantId: string,
+    dto: PlatformReviewRestaurantDto,
+  ): Promise<{ message: string }> {
     const restaurant = await this.restaurantRepository.findOne({
       where: { id: restaurantId },
+      relations: ['users'],
     });
 
     if (!restaurant) {
       throw new NotFoundException('Restaurante no encontrado');
     }
 
-    const documents = await this.documentRepository.find({
-      where: {
+    const ownerEmail =
+      Array.isArray(restaurant.users) &&
+      typeof restaurant.users[0]?.email === 'string'
+        ? restaurant.users[0].email
+        : undefined;
+
+    if (dto.status === RestaurantVerificationStatus.REJECTED) {
+      restaurant.verification_status = RestaurantVerificationStatus.REJECTED;
+
+      await this.restaurantRepository.save(restaurant);
+
+      if (ownerEmail) {
+        await this.mailService.sendGenericNotification(
+          ownerEmail,
+          'Solicitud rechazada',
+          `Tu restaurante "${restaurant.name}" fue rechazado. Motivo: ${
+            dto.notes ?? 'No especificado'
+          }`,
+        );
+      }
+
+      return {
+        message: 'Restaurante rechazado correctamente',
+      };
+    }
+
+    if (dto.status === RestaurantVerificationStatus.APPROVED) {
+      restaurant.verification_status = RestaurantVerificationStatus.APPROVED;
+
+      await this.restaurantRepository.save(restaurant);
+
+      const startDate = new Date();
+      const endDate = this.addMonths(startDate, 1);
+
+      const subscription = this.subscriptionRepository.create({
+        restaurant,
         restaurant_id: restaurant.id,
-      },
-      order: {
-        created_at: 'ASC',
-      },
-    });
+        plan_type: PlanType.BASIC,
+        status: SubscriptionStatus.ACTIVE,
+        start_date: startDate,
+        end_date: endDate,
+        next_payment_date: endDate,
+        auto_renew: true,
+      });
+
+      await this.subscriptionRepository.save(subscription);
+
+      if (ownerEmail) {
+        await this.mailService.sendGenericNotification(
+          ownerEmail,
+          'Restaurante aprobado 🎉',
+          `Tu restaurante "${restaurant.name}" ha sido aprobado. Ya puedes acceder al sistema.`,
+        );
+      }
+
+      return {
+        message: 'Restaurante aprobado y suscripción creada correctamente',
+      };
+    }
 
     return {
-      restaurant,
-      documents,
+      message: 'Estado de revisión no válido',
     };
   }
 
-  async approveRestaurant(
+  async getRestaurantDocuments(
     restaurantId: string,
-    platformUserId: string,
-    dto: PlatformReviewRestaurantDto,
-  ) {
-    const restaurant = await this.findRestaurantOrFail(restaurantId);
-
-    restaurant.is_active = true;
-    restaurant.verification_status = RestaurantVerificationStatus.APPROVED;
-    restaurant.verification_notes = dto.notes ?? null;
-    restaurant.verified_at = new Date();
-    restaurant.verified_by_user_id = platformUserId;
-
-    return await this.restaurantRepository.save(restaurant);
-  }
-
-  async rejectRestaurant(
-    restaurantId: string,
-    platformUserId: string,
-    dto: PlatformReviewRestaurantDto,
-  ) {
-    const restaurant = await this.findRestaurantOrFail(restaurantId);
-
-    restaurant.is_active = false;
-    restaurant.verification_status = RestaurantVerificationStatus.REJECTED;
-    restaurant.verification_notes = dto.notes ?? null;
-    restaurant.verified_at = new Date();
-    restaurant.verified_by_user_id = platformUserId;
-
-    const savedRestaurant = await this.restaurantRepository.save(restaurant);
-
-    if (savedRestaurant.email) {
-      await this.mailService.sendRestaurantRejectedEmail({
-        to: savedRestaurant.email,
-        name: savedRestaurant.name,
-        notes: dto.notes,
-      });
-    }
-    return savedRestaurant;
-  }
-
-  async suspendRestaurant(
-    restaurantId: string,
-    platformUserId: string,
-    dto: PlatformReviewRestaurantDto,
-  ) {
-    const restaurant = await this.findRestaurantOrFail(restaurantId);
-
-    restaurant.is_active = false;
-    restaurant.verification_status = RestaurantVerificationStatus.SUSPENDED;
-    restaurant.verification_notes = dto.notes ?? null;
-    restaurant.verified_at = new Date();
-    restaurant.verified_by_user_id = platformUserId;
-
-    const savedRestaurant = await this.restaurantRepository.save(restaurant);
-
-    if (savedRestaurant.email) {
-      await this.mailService.sendRestaurantSuspendedEmail({
-        to: savedRestaurant.email,
-        name: savedRestaurant.name,
-        notes: dto.notes,
-      });
-    }
-    return savedRestaurant;
-  }
-
-  private async findRestaurantOrFail(restaurantId: string) {
-    const restaurant = await this.restaurantRepository.findOne({
-      where: { id: restaurantId },
+  ): Promise<RestaurantVerificationDocument[]> {
+    return this.documentRepository.find({
+      where: { restaurant: { id: restaurantId } },
     });
-
-    if (!restaurant) {
-      throw new NotFoundException('Restaurante no encontrado');
-    }
-
-    return restaurant;
   }
-  async getRestaurants(status?: RestaurantVerificationStatus) {
-    return await this.restaurantRepository.find({
-      where: status
-        ? {
-            verification_status: status,
-          }
-        : {},
-      order: {
-        created_at: 'DESC',
-      },
-    });
+
+  private addMonths(date: Date, months: number): Date {
+    const newDate = new Date(date);
+    newDate.setMonth(newDate.getMonth() + months);
+    return newDate;
   }
 }

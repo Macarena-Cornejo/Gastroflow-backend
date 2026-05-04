@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { RestaurantTablesRepository } from './restaurant_tables.repository';
 import { RestaurantTableStatus } from '../common/restaurant_table.enum';
-import { CreateTableDto } from './dto/restaurant_table.dto';
+import { CreateTableDto, UpdateTableDto, UpdateTablesLayoutDto } from './dto/restaurant_table.dto';
 
 @Injectable()
 export class RestaurantTablesService {
@@ -22,6 +22,14 @@ export class RestaurantTablesService {
 
     async createNewTable(restaurantId: string, newTableData: CreateTableDto) {
         return await this.restaurantsTablesRepository.createNewTable(restaurantId, newTableData);
+    }
+
+    async updateTable(restaurantId: string, tableId: string, tableData: UpdateTableDto) {
+        return await this.restaurantsTablesRepository.updateTable(restaurantId, tableId, tableData);
+    }
+
+    async updateTablesLayout(restaurantId: string, layoutData: UpdateTablesLayoutDto) {
+        return await this.restaurantsTablesRepository.updateTablesLayout(restaurantId, layoutData);
     }
 
     async deactivateTable(restaurantId: string, tableId: string) {
