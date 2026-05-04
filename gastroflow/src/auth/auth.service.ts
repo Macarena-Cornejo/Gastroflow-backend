@@ -276,7 +276,7 @@ export class AuthService {
       });
 
       const savedRestaurant = await restaurantRepository.save(restaurant);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
       owner.restaurant_id = savedRestaurant.id;
 
       return await userRepository.save(owner);

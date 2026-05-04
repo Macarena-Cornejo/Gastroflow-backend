@@ -31,7 +31,7 @@ export class ReservationPayment {
 
   @Column({ type: 'varchar', nullable: true })
   transaction_id!: string;
-  
+
   @Column({ type: 'varchar', nullable: true })
   stripe_session_id?: string;
 
@@ -46,4 +46,4 @@ export class ReservationPayment {
 
   @UpdateDateColumn()
   updated_at!: Date;
-}   
+}

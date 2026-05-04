@@ -1,7 +1,7 @@
 export enum RestaurantTableStatus {
   AVAILABLE = 'DISPONIBLE',
   RESERVED = 'RESERVADA',
-  OCUPPED = 'OCUPADA'
+  OCUPPED = 'OCUPADA',
 }
 
 export enum RestaurantTableLayoutShape {

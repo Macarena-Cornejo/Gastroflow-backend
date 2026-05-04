@@ -32,7 +32,10 @@ export class OrderController {
   @UseGuards(AuthGuard, RolesGuard)
   @Role(UserRole.WAITER)
   @Post('open')
-  async openOrder(@Body() dto: OpenOrderDto, @GetUser() user: AuthenticatedUser) {
+  async openOrder(
+    @Body() dto: OpenOrderDto,
+    @GetUser() user: AuthenticatedUser,
+  ) {
     return this.orderService.openOrder(dto.tableId, user.id);
   }
 
@@ -50,7 +53,10 @@ export class OrderController {
   @UseGuards(AuthGuard, RolesGuard)
   @Role(UserRole.WAITER)
   @Patch(':orderId/close')
-  async closeOrder(@Param('orderId') orderId: string, @GetUser() user: AuthenticatedUser) {
+  async closeOrder(
+    @Param('orderId') orderId: string,
+    @GetUser() user: AuthenticatedUser,
+  ) {
     return this.orderService.closeOrder(orderId, user.id);
   }
 
@@ -75,10 +81,18 @@ export class OrderController {
   // Kitchen
   @UseGuards(AuthGuard, RolesGuard)
   @Role(UserRole.CHEF)
-  @ApiQuery({ name: 'status', required: false, enum: ['PENDIENTE', 'PREPARACION', 'SERVIDO'] })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['PENDIENTE', 'PREPARACION', 'SERVIDO'],
+  })
   @Get('kitchen')
-  async getKitchenOrders(@GetUser() user: AuthenticatedUser, @Query('status') status?: string) {
-    if (!user?.restaurant_id) throw new Error('No se puede determinar el restaurante del usuario');
+  async getKitchenOrders(
+    @GetUser() user: AuthenticatedUser,
+    @Query('status') status?: string,
+  ) {
+    if (!user?.restaurant_id)
+      throw new Error('No se puede determinar el restaurante del usuario');
     return this.orderService.getKitchenOrders(user.restaurant_id, status);
   }
 
@@ -104,19 +118,25 @@ export class OrderController {
   @Role(UserRole.CASHIER)
   @Get('cashier')
   async getCashierOrders(@GetUser() user: AuthenticatedUser) {
-    if (!user?.restaurant_id) throw new Error('No se puede determinar el restaurante del usuario');
+    if (!user?.restaurant_id)
+      throw new Error('No se puede determinar el restaurante del usuario');
     return this.orderService.getCashierOrders(user.restaurant_id);
   }
 
   @UseGuards(AuthGuard, RolesGuard)
   @Role(UserRole.CASHIER)
-  @ApiQuery({ name: 'date', required: false, description: 'Formato YYYY-MM-DD' })
+  @ApiQuery({
+    name: 'date',
+    required: false,
+    description: 'Formato YYYY-MM-DD',
+  })
   @Get('cashier/daily-summary')
   async getCashierDailySummary(
     @GetUser() user: AuthenticatedUser,
     @Query('date') date?: string,
   ) {
-    if (!user?.restaurant_id) throw new Error('No se puede determinar el restaurante del usuario');
+    if (!user?.restaurant_id)
+      throw new Error('No se puede determinar el restaurante del usuario');
     return this.orderService.getCashierDailySummary(user.restaurant_id, date);
   }
 

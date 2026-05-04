@@ -92,16 +92,17 @@ export class ReservationsRepository {
       throw new NotFoundException('Mesa no encontrada');
     }
 
-     const conflict = await this.reservationsRepository.findOne({
-        where: {
-            table: { id: reservationData.table_id },
-            status: In([ReservationStatus.CONFIRMED, ReservationStatus.PENDING]),
-            start_time: LessThan(endTime),
-            end_time: MoreThan(startTime),
-        },
+    const conflict = await this.reservationsRepository.findOne({
+      where: {
+        table: { id: reservationData.table_id },
+        status: In([ReservationStatus.CONFIRMED, ReservationStatus.PENDING]),
+        start_time: LessThan(endTime),
+        end_time: MoreThan(startTime),
+      },
     });
 
-    if (conflict) throw new BadRequestException('La mesa ya está reservada en ese horario');
+    if (conflict)
+      throw new BadRequestException('La mesa ya está reservada en ese horario');
 
     const createReservation = this.reservationsRepository.create({
       ...reservationData,
