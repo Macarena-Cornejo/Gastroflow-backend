@@ -29,7 +29,16 @@ export class ReservationsPaymentService {
             where: { id: reservationId },
         });
         if (!reservation) throw new NotFoundException('Reserva no encontrada');
-        
+
+        const existingPayment = await this.reservationsPaymentRepository.findOne({
+            where: { reservation: { id: reservationId }, status: PaymentStatus.PENDING }
+        });
+
+        if (existingPayment?.stripe_session_id) {
+            const session = await stripe.checkout.sessions.retrieve(existingPayment.stripe_session_id);
+            if (session.url) return { url: session.url };
+        }
+                
         const DEPOSIT_AMOUNT = 5;
         
         const session = await stripe.checkout.sessions.create({
@@ -60,10 +69,11 @@ export class ReservationsPaymentService {
             amount: DEPOSIT_AMOUNT,
             currency: 'usd',
             provider: 'stripe',
+            stripe_session_id: session.id,
             status: PaymentStatus.PENDING,
         });
         
-        return session ;
+        return { url: session.url };
     }   
 
     async handleWebhook(event: any) {

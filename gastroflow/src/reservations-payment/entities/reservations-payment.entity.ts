@@ -3,6 +3,7 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  ManyToOne,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -15,7 +16,7 @@ export class ReservationPayment {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @OneToOne(() => Reservation)
+  @ManyToOne(() => Reservation, { nullable: false, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'reservation_id' })
   reservation!: Reservation;
 
@@ -30,6 +31,9 @@ export class ReservationPayment {
 
   @Column({ type: 'varchar', nullable: true })
   transaction_id!: string;
+  
+  @Column({ type: 'varchar', nullable: true })
+  stripe_session_id?: string;
 
   @Column({ type: 'varchar', nullable: false })
   status!: PaymentStatus;
