@@ -4,7 +4,7 @@ import { RestaurantTables } from "./entities/restaurant_table.entity";
 import { In, LessThan, MoreThan, Repository } from "typeorm";
 import { RestaurantTableStatus } from "../common/restaurant_table.enum";
 import { Restaurant } from "../restaurants/entities/restaurant.entity";
-import { CreateTableDto } from "./dto/restaurant_table.dto";
+import { CreateTableDto, UpdateTableDto, UpdateTablesLayoutDto } from "./dto/restaurant_table.dto";
 import { Reservation } from "../reservations/entities/reservation.entity";
 import { ReservationStatus } from "../common/reservation.enum";
 
@@ -77,6 +77,86 @@ export class RestaurantTablesRepository{
     table.status = status;
     return this.restaurantsTablesRepository.save(table);
     }
+
+  async updateTable(restaurantId: string, tableId: string, tableData: UpdateTableDto) {
+    const table = await this.restaurantsTablesRepository.findOne({
+      where: {
+        id: tableId,
+        restaurant: { id: restaurantId },
+      },
+    });
+
+    if (!table) throw new NotFoundException('Mesa no encontrada');
+
+    const allowedFields: (keyof UpdateTableDto)[] = [
+      'table_number',
+      'capacity',
+      'zone',
+      'is_active',
+      'layout_x',
+      'layout_y',
+      'layout_width',
+      'layout_height',
+      'layout_shape',
+      'layout_rotation',
+      'is_visible',
+    ];
+
+    for (const field of allowedFields) {
+      if (tableData[field] !== undefined) {
+        (table as unknown as Record<string, unknown>)[field] = tableData[field];
+      }
+    }
+
+    return this.restaurantsTablesRepository.save(table);
+  }
+
+  async updateTablesLayout(restaurantId: string, layoutData: UpdateTablesLayoutDto) {
+    const tableIds = layoutData.tables.map((table) => table.id);
+    const tables = await this.restaurantsTablesRepository.find({
+      where: {
+        id: In(tableIds),
+        restaurant: { id: restaurantId },
+      },
+    });
+
+    if (tables.length !== new Set(tableIds).size) {
+      throw new NotFoundException('Una o mas mesas no pertenecen al restaurante indicado');
+    }
+
+    const tablesById = new Map(tables.map((table) => [table.id, table]));
+
+    for (const layoutItem of layoutData.tables) {
+      const table = tablesById.get(layoutItem.id);
+
+      if (!table) continue;
+
+      table.layout_x = layoutItem.layout_x;
+      table.layout_y = layoutItem.layout_y;
+
+      if (layoutItem.layout_width !== undefined) {
+        table.layout_width = layoutItem.layout_width;
+      }
+
+      if (layoutItem.layout_height !== undefined) {
+        table.layout_height = layoutItem.layout_height;
+      }
+
+      if (layoutItem.layout_shape !== undefined) {
+        table.layout_shape = layoutItem.layout_shape;
+      }
+
+      if (layoutItem.layout_rotation !== undefined) {
+        table.layout_rotation = layoutItem.layout_rotation;
+      }
+
+      if (layoutItem.is_visible !== undefined) {
+        table.is_visible = layoutItem.is_visible;
+      }
+    }
+
+    return this.restaurantsTablesRepository.save(tables);
+  }
 
     
 async seedTables(restaurantId: string) {
