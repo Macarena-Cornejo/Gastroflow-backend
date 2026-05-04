@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Param, ParseUUIDPipe, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { RestaurantTablesService } from './restaurant_tables.service';
 import { RestaurantTableStatus } from '../common/restaurant_table.enum';
 import { Role } from '../decorators/roles.decorators';
@@ -14,6 +14,11 @@ export class RestaurantTablesController {
 
     constructor(private readonly restaurantTablesService: RestaurantTablesService){}
 
+    private validateRestaurantAccess(req: { user?: { restaurant_id?: string } }, restaurantId: string) {
+        if (req.user?.restaurant_id !== restaurantId) {
+            throw new ForbiddenException('No tienes permiso para administrar mesas de este restaurante');
+        }
+    }
 
     @ApiOperation({ summary: 'Obtener todas las mesas de un restaurante' })
     @ApiParam({ name: 'restaurantId', type: 'string', format: 'uuid' })
@@ -44,7 +49,9 @@ export class RestaurantTablesController {
     async setOccupied(
     @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
     @Param('tableId', ParseUUIDPipe) tableId: string,
+    @Req() req: { user?: { restaurant_id?: string } },
     ) {
+     this.validateRestaurantAccess(req, restaurantId);
      return await this.restaurantTablesService.updateStatus(restaurantId, tableId, RestaurantTableStatus.OCUPPED);
     }
 
@@ -62,7 +69,9 @@ export class RestaurantTablesController {
     async setReserved(
     @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
     @Param('tableId', ParseUUIDPipe) tableId: string,
+    @Req() req: { user?: { restaurant_id?: string } },
     ) {
+    this.validateRestaurantAccess(req, restaurantId);
     return await this.restaurantTablesService.updateStatus(restaurantId, tableId, RestaurantTableStatus.RESERVED);
     }
 
@@ -80,7 +89,9 @@ export class RestaurantTablesController {
     async setAvailable(
     @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
     @Param('tableId', ParseUUIDPipe) tableId: string,
+    @Req() req: { user?: { restaurant_id?: string } },
     ) {
+    this.validateRestaurantAccess(req, restaurantId);
     return await this.restaurantTablesService.updateStatus(restaurantId, tableId, RestaurantTableStatus.AVAILABLE);
 }
 
@@ -94,7 +105,11 @@ export class RestaurantTablesController {
     @ApiResponse({ status: 403, description: 'Acceso denegado' })
     @ApiResponse({ status: 404, description: 'Restaurante no encontrado' })
     @Post('seed')
-    async seedTables(@Param('restaurantId', ParseUUIDPipe) restaurantId: string) {
+    async seedTables(
+    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @Req() req: { user?: { restaurant_id?: string } },
+    ) {
+    this.validateRestaurantAccess(req, restaurantId);
     return await this.restaurantTablesService.seedTables(restaurantId);
     }
 
@@ -111,8 +126,10 @@ export class RestaurantTablesController {
     @Post('newTable')
     async createNewTable(
         @Param('restaurantId', ParseUUIDPipe) restaurantId: string, 
-        @Body() newTableData: CreateTableDto
+        @Body() newTableData: CreateTableDto,
+        @Req() req: { user?: { restaurant_id?: string } },
     ) {
+    this.validateRestaurantAccess(req, restaurantId);
     return await this.restaurantTablesService.createNewTable(restaurantId, newTableData);
     }
 
@@ -128,8 +145,10 @@ export class RestaurantTablesController {
     @Patch('layout')
     async updateTablesLayout(
         @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
-        @Body() layoutData: UpdateTablesLayoutDto
+        @Body() layoutData: UpdateTablesLayoutDto,
+        @Req() req: { user?: { restaurant_id?: string } },
     ) {
+        this.validateRestaurantAccess(req, restaurantId);
         return await this.restaurantTablesService.updateTablesLayout(restaurantId, layoutData);
     }
 
@@ -147,8 +166,10 @@ export class RestaurantTablesController {
     async updateTable(
         @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
         @Param('tableId', ParseUUIDPipe) tableId: string,
-        @Body() tableData: UpdateTableDto
+        @Body() tableData: UpdateTableDto,
+        @Req() req: { user?: { restaurant_id?: string } },
     ) {
+        this.validateRestaurantAccess(req, restaurantId);
         return await this.restaurantTablesService.updateTable(restaurantId, tableId, tableData);
     }
 
@@ -166,7 +187,9 @@ export class RestaurantTablesController {
     async deactivateTable(
     @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
     @Param('tableId', ParseUUIDPipe) tableId: string,
+    @Req() req: { user?: { restaurant_id?: string } },
     ) {
+        this.validateRestaurantAccess(req, restaurantId);
         return this.restaurantTablesService.deactivateTable(restaurantId, tableId);
     }
 }
