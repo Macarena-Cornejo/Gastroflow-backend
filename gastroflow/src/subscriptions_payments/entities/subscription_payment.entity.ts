@@ -10,7 +10,6 @@ import {
 import { Subscription } from '../../subscriptions/entities/subscription.entity';
 import { SubscriptionPaymentStatus } from '../../common/subscription_payment.enum';
 
-
 @Entity({ name: 'SUBSCRIPTION_PAYMENTS' })
 export class SubscriptionPayment {
   @PrimaryGeneratedColumn('uuid')
@@ -33,7 +32,7 @@ export class SubscriptionPayment {
   transaction_id?: string;
 
   @Column({ type: 'varchar', nullable: true })
-  stripe_session_id?: string;  
+  stripe_session_id?: string;
 
   @Column({
     type: 'enum',

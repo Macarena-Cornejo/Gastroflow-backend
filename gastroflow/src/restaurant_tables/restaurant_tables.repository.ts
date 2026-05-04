@@ -1,12 +1,20 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { RestaurantTables } from "./entities/restaurant_table.entity";
-import { In, LessThan, MoreThan, Repository } from "typeorm";
-import { RestaurantTableStatus } from "../common/restaurant_table.enum";
-import { Restaurant } from "../restaurants/entities/restaurant.entity";
-import { CreateTableDto, UpdateTableDto, UpdateTablesLayoutDto } from "./dto/restaurant_table.dto";
-import { Reservation } from "../reservations/entities/reservation.entity";
-import { ReservationStatus } from "../common/reservation.enum";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { RestaurantTables } from './entities/restaurant_table.entity';
+import { In, LessThan, MoreThan, Repository } from 'typeorm';
+import { RestaurantTableStatus } from '../common/restaurant_table.enum';
+import { Restaurant } from '../restaurants/entities/restaurant.entity';
+import {
+  CreateTableDto,
+  UpdateTableDto,
+  UpdateTablesLayoutDto,
+} from './dto/restaurant_table.dto';
+import { Reservation } from '../reservations/entities/reservation.entity';
+import { ReservationStatus } from '../common/reservation.enum';
 
 export const tablesSeed = [
   { table_number: 1, capacity: 2, zone: 'Interior' },
@@ -22,63 +30,77 @@ export const tablesSeed = [
 ];
 
 @Injectable()
+export class RestaurantTablesRepository {
+  constructor(
+    @InjectRepository(RestaurantTables)
+    private restaurantsTablesRepository: Repository<RestaurantTables>,
+    @InjectRepository(Restaurant)
+    private restaurantsRepository: Repository<Restaurant>,
+    @InjectRepository(Reservation)
+    private reservationsRepository: Repository<Reservation>,
+  ) {}
 
-export class RestaurantTablesRepository{
-    constructor(
-    @InjectRepository(RestaurantTables) private restaurantsTablesRepository: Repository<RestaurantTables>,
-    @InjectRepository(Restaurant) private restaurantsRepository: Repository<Restaurant>, 
-    @InjectRepository(Reservation) private reservationsRepository: Repository<Reservation>
-    ){}
-    
-    async getAvailableTables(restaurantId: string, date: string, time: string) {
-      console.log('getAvailableTables:', { restaurantId, date, time });
-     const allTables = await this.restaurantsTablesRepository.find({
-        where: { restaurant: { id: restaurantId }, is_active: true },
+  async getAvailableTables(restaurantId: string, date: string, time: string) {
+    console.log('getAvailableTables:', { restaurantId, date, time });
+    const allTables = await this.restaurantsTablesRepository.find({
+      where: { restaurant: { id: restaurantId }, is_active: true },
     });
     if (!date || !time) return allTables;
 
-    if (!allTables.length) throw new NotFoundException('No se encontraron mesas para este restaurante');
+    if (!allTables.length)
+      throw new NotFoundException(
+        'No se encontraron mesas para este restaurante',
+      );
 
     const startTime = new Date(`${date}T${time}:00.000Z`);
     const endTime = new Date(startTime.getTime() + (2 * 60 + 15) * 60 * 1000);
 
     const occupiedTables = await this.reservationsRepository.find({
-    where: {
+      where: {
         restaurant: { id: restaurantId },
         status: In([ReservationStatus.CONFIRMED, ReservationStatus.PENDING]), // ← agregá PENDING
         start_time: LessThan(endTime),
         end_time: MoreThan(startTime),
-    },
-    relations: ['table'],
-  });
+      },
+      relations: ['table'],
+    });
 
-    const occupiedIds = occupiedTables.map(r => r.table.id);
+    const occupiedIds = occupiedTables.map((r) => r.table.id);
 
-    return allTables.map(table => ({
-        ...table,
-        status: occupiedIds.includes(table.id) 
-            ? RestaurantTableStatus.RESERVED 
-            : RestaurantTableStatus.AVAILABLE,
-      }));
-    }
+    return allTables.map((table) => ({
+      ...table,
+      status: occupiedIds.includes(table.id)
+        ? RestaurantTableStatus.RESERVED
+        : RestaurantTableStatus.AVAILABLE,
+    }));
+  }
 
-    async updateStatus(restaurantId: string, tableId: string, status: RestaurantTableStatus) {
+  async updateStatus(
+    restaurantId: string,
+    tableId: string,
+    status: RestaurantTableStatus,
+  ) {
     const table = await this.restaurantsTablesRepository.findOne({
-    where: {
-      id: tableId,
-      restaurant: { id: restaurantId },
-    },
+      where: {
+        id: tableId,
+        restaurant: { id: restaurantId },
+      },
     });
 
     if (!table) throw new NotFoundException('Mesa no encontrada');
-    if (!table.is_active) throw new BadRequestException('La mesa no está activa');
+    if (!table.is_active)
+      throw new BadRequestException('La mesa no está activa');
     if (table.status === status) return table;
 
     table.status = status;
     return this.restaurantsTablesRepository.save(table);
-    }
+  }
 
-  async updateTable(restaurantId: string, tableId: string, tableData: UpdateTableDto) {
+  async updateTable(
+    restaurantId: string,
+    tableId: string,
+    tableData: UpdateTableDto,
+  ) {
     const table = await this.restaurantsTablesRepository.findOne({
       where: {
         id: tableId,
@@ -111,7 +133,10 @@ export class RestaurantTablesRepository{
     return this.restaurantsTablesRepository.save(table);
   }
 
-  async updateTablesLayout(restaurantId: string, layoutData: UpdateTablesLayoutDto) {
+  async updateTablesLayout(
+    restaurantId: string,
+    layoutData: UpdateTablesLayoutDto,
+  ) {
     const tableIds = layoutData.tables.map((table) => table.id);
     const tables = await this.restaurantsTablesRepository.find({
       where: {
@@ -121,7 +146,9 @@ export class RestaurantTablesRepository{
     });
 
     if (tables.length !== new Set(tableIds).size) {
-      throw new NotFoundException('Una o mas mesas no pertenecen al restaurante indicado');
+      throw new NotFoundException(
+        'Una o mas mesas no pertenecen al restaurante indicado',
+      );
     }
 
     const tablesById = new Map(tables.map((table) => [table.id, table]));
@@ -158,40 +185,39 @@ export class RestaurantTablesRepository{
     return this.restaurantsTablesRepository.save(tables);
   }
 
-    
-async seedTables(restaurantId: string) {
-  const restaurant = await this.restaurantsRepository.findOne({
-    where: { id: restaurantId },
-  });
+  async seedTables(restaurantId: string) {
+    const restaurant = await this.restaurantsRepository.findOne({
+      where: { id: restaurantId },
+    });
 
-  if (!restaurant) throw new NotFoundException('Restaurante no encontrado');
+    if (!restaurant) throw new NotFoundException('Restaurante no encontrado');
 
-  const existingTables = await this.restaurantsTablesRepository.count({
-    where: { restaurant: { id: restaurantId } },
-  });
+    const existingTables = await this.restaurantsTablesRepository.count({
+      where: { restaurant: { id: restaurantId } },
+    });
 
-  if (existingTables > 0) throw new BadRequestException('El restaurante ya tiene mesas cargadas');
+    if (existingTables > 0)
+      throw new BadRequestException('El restaurante ya tiene mesas cargadas');
 
-  const tables = tablesSeed.map((table) =>
-    this.restaurantsTablesRepository.create({
-      ...table,
-      restaurant,
-    }),
+    const tables = tablesSeed.map((table) =>
+      this.restaurantsTablesRepository.create({
+        ...table,
+        restaurant,
+      }),
     );
 
     return this.restaurantsTablesRepository.save(tables);
-    }
-
+  }
 
   async createNewTable(restaurantId: string, newTableData: CreateTableDto) {
     const restaurant = await this.restaurantsRepository.findOne({
-        where: { id: restaurantId },
+      where: { id: restaurantId },
     });
     if (!restaurant) throw new NotFoundException('Restaurante no encontrado');
 
     const newTable = this.restaurantsTablesRepository.create({
-        ...newTableData,
-        restaurant,
+      ...newTableData,
+      restaurant,
     });
 
     return this.restaurantsTablesRepository.save(newTable);
@@ -199,17 +225,17 @@ async seedTables(restaurantId: string) {
 
   async deactivateTable(restaurantId: string, tableId: string) {
     const table = await this.restaurantsTablesRepository.findOne({
-        where: {
-            id: tableId,
-            restaurant: { id: restaurantId },
-        },
+      where: {
+        id: tableId,
+        restaurant: { id: restaurantId },
+      },
     });
 
     if (!table) throw new NotFoundException('Mesa no encontrada');
-    if (!table.is_active) throw new BadRequestException('La mesa ya está desactivada');
+    if (!table.is_active)
+      throw new BadRequestException('La mesa ya está desactivada');
 
     table.is_active = false;
     return this.restaurantsTablesRepository.save(table);
-  
   }
 }

@@ -11,7 +11,11 @@ import { OrderItem } from './entities/order_item';
 import { MenuItem } from '../menu/entities/menu-item.entity';
 import { User } from '../users/entities/user.entity';
 import { RestaurantTables } from '../restaurant_tables/entities/restaurant_table.entity';
-import { KitchenOrderStatus, OrderStatus, PaymentMethod } from '../common/order.enum';
+import {
+  KitchenOrderStatus,
+  OrderStatus,
+  PaymentMethod,
+} from '../common/order.enum';
 import { AddItemDto, PayOrderDto } from './dto/order.dto';
 import { OrderGateway } from './gateways/order.gateway';
 
@@ -136,8 +140,10 @@ export class OrderService {
     const menuItem = await this.menuItemsRepository.findOne({
       where: { id: menuItemId },
     });
-    if (!menuItem) throw new NotFoundException('Producto no encontrado en el menu');
-    if (!menuItem.is_available) throw new ForbiddenException('Producto no disponible');
+    if (!menuItem)
+      throw new NotFoundException('Producto no encontrado en el menu');
+    if (!menuItem.is_available)
+      throw new ForbiddenException('Producto no disponible');
 
     const orderItem = this.ordersItemsRepository.create({
       order,
@@ -148,19 +154,24 @@ export class OrderService {
     });
     const savedItem = await this.ordersItemsRepository.save(orderItem);
 
-    order.total = Number(order.total) + Number(menuItem.price) * Number(quantity);
+    order.total =
+      Number(order.total) + Number(menuItem.price) * Number(quantity);
     await this.ordersRepository.save(order);
 
-    this.orderGateway.emitToRestaurant(order.restaurant.id, 'order:item_added', {
-      ...this.buildSocketPayload(order),
-      item: {
-        id: savedItem.id,
-        name: menuItem.name,
-        quantity,
-        price: Number(menuItem.price),
-        notes,
+    this.orderGateway.emitToRestaurant(
+      order.restaurant.id,
+      'order:item_added',
+      {
+        ...this.buildSocketPayload(order),
+        item: {
+          id: savedItem.id,
+          name: menuItem.name,
+          quantity,
+          price: Number(menuItem.price),
+          notes,
+        },
       },
-    });
+    );
 
     return { orderId: order.id, itemId: savedItem.id, status: order.status };
   }
@@ -193,10 +204,14 @@ export class OrderService {
       closedAt: saved.closed_at?.toISOString() ?? null,
     });
 
-    this.orderGateway.emitToRestaurant(order.restaurant.id, 'order:status_updated', {
-      ...this.buildSocketPayload({ ...saved, table: order.table }),
-      closedAt: saved.closed_at?.toISOString() ?? null,
-    });
+    this.orderGateway.emitToRestaurant(
+      order.restaurant.id,
+      'order:status_updated',
+      {
+        ...this.buildSocketPayload({ ...saved, table: order.table }),
+        closedAt: saved.closed_at?.toISOString() ?? null,
+      },
+    );
 
     return { id: saved.id, status: saved.status };
   }
@@ -209,7 +224,9 @@ export class OrderService {
     if (!order) throw new NotFoundException('Orden no encontrada');
 
     if (order.waiter.id !== waiterId) {
-      throw new ForbiddenException('No podes confirmar la entrega de esta orden');
+      throw new ForbiddenException(
+        'No podes confirmar la entrega de esta orden',
+      );
     }
 
     if (order.status !== OrderStatus.SERVIDO) {
@@ -221,10 +238,14 @@ export class OrderService {
     order.delivered_at = new Date();
     const saved = await this.ordersRepository.save(order);
 
-    this.orderGateway.emitToRestaurant(order.restaurant.id, 'order:status_updated', {
-      ...this.buildSocketPayload({ ...saved, table: order.table }),
-      deliveredAt: saved.delivered_at?.toISOString() ?? null,
-    });
+    this.orderGateway.emitToRestaurant(
+      order.restaurant.id,
+      'order:status_updated',
+      {
+        ...this.buildSocketPayload({ ...saved, table: order.table }),
+        deliveredAt: saved.delivered_at?.toISOString() ?? null,
+      },
+    );
 
     return {
       id: saved.id,
@@ -294,9 +315,13 @@ export class OrderService {
 
     const formatted = this.formatKitchenOrder(order);
 
-    this.orderGateway.emitToRestaurant(order.restaurant.id, 'order:status_updated', {
-      ...this.buildSocketPayload(order),
-    });
+    this.orderGateway.emitToRestaurant(
+      order.restaurant.id,
+      'order:status_updated',
+      {
+        ...this.buildSocketPayload(order),
+      },
+    );
 
     return formatted;
   }
@@ -327,12 +352,16 @@ export class OrderService {
       closedAt: order.closed_at?.toISOString() ?? null,
       paidAt: order.paid_at?.toISOString() ?? null,
       paidBy: order.paid_by ?? null,
-      ticketNotes: order.items?.map((item) => item.notes).filter((note) => !!note).join(' | ') || null,
+      ticketNotes:
+        order.items
+          ?.map((item) => item.notes)
+          .filter((note) => !!note)
+          .join(' | ') || null,
       items:
         order.items?.map((item) => ({
           id: item.id,
           name: item.menuItem?.name ?? 'Producto sin nombre',
-            price: Number(item.unit_price),
+          price: Number(item.unit_price),
           quantity: item.quantity,
           unitPrice: Number(item.unit_price),
           subtotal: Number(item.unit_price) * item.quantity,
@@ -378,7 +407,8 @@ export class OrderService {
       const method = order.payment_method || 'unknown';
 
       grossTotal += orderTotal;
-      if (!byPaymentMethod[method]) byPaymentMethod[method] = { count: 0, total: 0 };
+      if (!byPaymentMethod[method])
+        byPaymentMethod[method] = { count: 0, total: 0 };
       byPaymentMethod[method].count += 1;
       byPaymentMethod[method].total += orderTotal;
     }
@@ -415,54 +445,58 @@ export class OrderService {
   }
 
   async payOrder(orderId: string, dto: PayOrderDto, cashierId: string) {
-    const result = await this.ordersRepository.manager.transaction(async (manager) => {
-      const order = await manager.getRepository(Order).findOne({
-        where: { id: orderId },
-        lock: { mode: 'pessimistic_write' },
-      });
+    const result = await this.ordersRepository.manager.transaction(
+      async (manager) => {
+        const order = await manager.getRepository(Order).findOne({
+          where: { id: orderId },
+          lock: { mode: 'pessimistic_write' },
+        });
 
-      if (!order) throw new NotFoundException('Orden no encontrada');
+        if (!order) throw new NotFoundException('Orden no encontrada');
 
-      const orderWithRelations = await manager.getRepository(Order).findOne({
-        where: { id: orderId },
-        relations: ['restaurant', 'table'],
-      });
-      if (!orderWithRelations) throw new NotFoundException('Orden no encontrada');
+        const orderWithRelations = await manager.getRepository(Order).findOne({
+          where: { id: orderId },
+          relations: ['restaurant', 'table'],
+        });
+        if (!orderWithRelations)
+          throw new NotFoundException('Orden no encontrada');
 
-      if (order.status === OrderStatus.PAGADO) {
+        if (order.status === OrderStatus.PAGADO) {
+          return {
+            saved: orderWithRelations,
+            restaurantId: orderWithRelations.restaurant.id,
+            table: orderWithRelations.table,
+            idempotent: true,
+          };
+        }
+
+        if (order.status !== OrderStatus.LISTA_PARA_PAGAR) {
+          throw new ForbiddenException(
+            `Solo se pueden cobrar ordenes en estado LISTA_PARA_PAGAR. Estado actual: ${order.status}`,
+          );
+        }
+
+        order.status = OrderStatus.PAGADO;
+        order.paid_at = new Date();
+        order.paid_by = cashierId;
+        order.payment_method = dto.paymentMethod;
+
+        const saved = await manager.getRepository(Order).save(order);
+        const savedWithRelations = await manager.getRepository(Order).findOne({
+          where: { id: saved.id },
+          relations: ['restaurant', 'table'],
+        });
+        if (!savedWithRelations)
+          throw new NotFoundException('Orden no encontrada');
+
         return {
-          saved: orderWithRelations,
-          restaurantId: orderWithRelations.restaurant.id,
-          table: orderWithRelations.table,
-          idempotent: true,
+          saved: savedWithRelations,
+          restaurantId: savedWithRelations.restaurant.id,
+          table: savedWithRelations.table,
+          idempotent: false,
         };
-      }
-
-      if (order.status !== OrderStatus.LISTA_PARA_PAGAR) {
-        throw new ForbiddenException(
-          `Solo se pueden cobrar ordenes en estado LISTA_PARA_PAGAR. Estado actual: ${order.status}`,
-        );
-      }
-
-      order.status = OrderStatus.PAGADO;
-      order.paid_at = new Date();
-      order.paid_by = cashierId;
-      order.payment_method = dto.paymentMethod;
-
-      const saved = await manager.getRepository(Order).save(order);
-      const savedWithRelations = await manager.getRepository(Order).findOne({
-        where: { id: saved.id },
-        relations: ['restaurant', 'table'],
-      });
-      if (!savedWithRelations) throw new NotFoundException('Orden no encontrada');
-
-      return {
-        saved: savedWithRelations,
-        restaurantId: savedWithRelations.restaurant.id,
-        table: savedWithRelations.table,
-        idempotent: false,
-      };
-    });
+      },
+    );
 
     if (!result.idempotent) {
       this.orderGateway.emitToRestaurant(result.restaurantId, 'order:paid', {
@@ -472,12 +506,16 @@ export class OrderService {
         paidBy: result.saved.paid_by ?? null,
       });
 
-      this.orderGateway.emitToRestaurant(result.restaurantId, 'order:status_updated', {
-        ...this.buildSocketPayload({ ...result.saved, table: result.table }),
-        paymentMethod: result.saved.payment_method,
-        paidAt: result.saved.paid_at?.toISOString() ?? null,
-        paidBy: result.saved.paid_by ?? null,
-      });
+      this.orderGateway.emitToRestaurant(
+        result.restaurantId,
+        'order:status_updated',
+        {
+          ...this.buildSocketPayload({ ...result.saved, table: result.table }),
+          paymentMethod: result.saved.payment_method,
+          paidAt: result.saved.paid_at?.toISOString() ?? null,
+          paidBy: result.saved.paid_by ?? null,
+        },
+      );
     }
 
     return {
@@ -507,7 +545,10 @@ export class OrderService {
       isActive: order.isActive,
       deliveredAt: order.delivered_at?.toISOString() ?? null,
       waiter: order.waiter
-        ? { id: order.waiter.id, name: `${order.waiter.first_name} ${order.waiter.last_name}` }
+        ? {
+            id: order.waiter.id,
+            name: `${order.waiter.first_name} ${order.waiter.last_name}`,
+          }
         : null,
       items:
         order.items?.map((item) => ({

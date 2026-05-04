@@ -25,35 +25,56 @@ export class SubscriptionsCronService {
     private readonly mailService: MailService,
   ) {}
 
+  // CRON (RECORDATORIOS)
   @Cron(CronExpression.EVERY_DAY_AT_9AM)
   async handleSubscriptionReminders() {
     this.logger.log('Running subscription reminders cron...');
 
-    await this.expireOverdueSubscriptions();
     await this.createReminderLogs();
     await this.processPendingLogs();
   }
 
-  private async expireOverdueSubscriptions() {
+  //  CRON (SUSPENSIÓN AUTOMÁTICA)
+  @Cron(CronExpression.EVERY_DAY_AT_9AM)
+  async handleExpiredSubscriptions() {
+    this.logger.log('Running expired subscriptions cron...');
+
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
 
-    const result = await this.subscriptionRepository.update(
-      {
-        status: SubscriptionStatus.ACTIVE,
+    const expiredSubscriptions = await this.subscriptionRepository.find({
+      where: {
         end_date: LessThan(today),
+        status: SubscriptionStatus.ACTIVE,
       },
-      {
-        status: SubscriptionStatus.EXPIRED,
+      relations: {
+        restaurant: true,
       },
-    );
+    });
 
-    const expiredCount = result.affected ?? 0;
+    for (const subscription of expiredSubscriptions) {
+      subscription.status = SubscriptionStatus.CANCELLED;
 
-    if (expiredCount > 0) {
-      this.logger.log(`Expired ${expiredCount} overdue subscriptions`);
+      await this.subscriptionRepository.save(subscription);
+
+      const email = subscription.restaurant?.email;
+
+      if (!email) continue;
+
+      await this.mailService.sendGenericNotification(
+        email,
+        'Suscripción cancelada por vencimiento',
+        'Tu suscripción ha sido cancelada automáticamente porque llegó a su fecha de vencimiento. Puedes renovarla para seguir usando GastroFlow.',
+      );
+
+      this.logger.log(
+        `Expired subscription cancelled and notified: ${subscription.id}`,
+      );
     }
   }
+
+  // =========================
+  // LÓGICA RECORDATORIOS
+  // =========================
 
   private async createReminderLogs() {
     const today = new Date();
