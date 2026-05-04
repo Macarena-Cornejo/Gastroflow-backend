@@ -5,6 +5,10 @@ import { Restaurant } from '../restaurants/entities/restaurant.entity';
 import { RestaurantVerificationDocument } from '../restaurant-verification/entities/restaurant-verification-document.entity';
 import { RestaurantVerificationStatus } from '../common/restaurant-verification-status.enum';
 import { PlatformReviewRestaurantDto } from './dto/platform-review-restaurant.dto';
+import { Subscription } from '../subscriptions/entities/subscription.entity';
+import { SubscriptionStatus } from '../subscriptions/enums/subscription-status.enum';
+import { SubscriptionPayment } from '../subscriptions_payments/entities/subscription_payment.entity';
+import { SubscriptionPaymentStatus } from '../common/subscription_payment.enum';
 
 @Injectable()
 export class PlatformService {
@@ -14,6 +18,12 @@ export class PlatformService {
 
     @InjectRepository(RestaurantVerificationDocument)
     private readonly documentRepository: Repository<RestaurantVerificationDocument>,
+
+    @InjectRepository(Subscription)
+    private readonly subscriptionRepository: Repository<Subscription>,
+
+    @InjectRepository(SubscriptionPayment)
+    private readonly subscriptionPaymentRepository: Repository<SubscriptionPayment>,
   ) {}
 
   async getPendingRestaurants() {
@@ -97,6 +107,104 @@ export class PlatformService {
     restaurant.verified_by_user_id = platformUserId;
 
     return await this.restaurantRepository.save(restaurant);
+  }
+
+  async getActiveSubscriptions() {
+    const subscriptions = await this.subscriptionRepository.find({
+      where: {
+        status: SubscriptionStatus.ACTIVE,
+      },
+      relations: ['restaurant'],
+      order: {
+        end_date: 'ASC',
+      },
+    });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return subscriptions.map((subscription) => {
+      const endDate = new Date(subscription.end_date);
+      endDate.setHours(0, 0, 0, 0);
+
+      const diffInMs = endDate.getTime() - today.getTime();
+      const daysRemaining = Math.max(
+        0,
+        Math.ceil(diffInMs / (1000 * 60 * 60 * 24)),
+      );
+
+      return {
+        id: subscription.id,
+        restaurant: {
+          id: subscription.restaurant?.id,
+          name: subscription.restaurant?.name,
+          slug: subscription.restaurant?.slug,
+          email: subscription.restaurant?.email,
+        },
+        plan_type: subscription.plan_type,
+        status: subscription.status,
+        start_date: subscription.start_date,
+        end_date: subscription.end_date,
+        next_payment_date: subscription.next_payment_date ?? null,
+        auto_renew: subscription.auto_renew,
+        days_remaining: daysRemaining,
+      };
+    });
+  }
+
+  async getSubscriptionRevenueMetrics() {
+    const completedStatus = SubscriptionPaymentStatus.COMPLETED;
+
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    const totalRevenueRows = await this.subscriptionPaymentRepository
+      .createQueryBuilder('payment')
+      .select('payment.currency', 'currency')
+      .addSelect('COALESCE(SUM(payment.amount), 0)', 'total')
+      .addSelect('COUNT(payment.id)', 'payments_count')
+      .where('payment.status = :status', { status: completedStatus })
+      .groupBy('payment.currency')
+      .getRawMany();
+
+    const currentMonthRevenueRows = await this.subscriptionPaymentRepository
+      .createQueryBuilder('payment')
+      .select('payment.currency', 'currency')
+      .addSelect('COALESCE(SUM(payment.amount), 0)', 'total')
+      .addSelect('COUNT(payment.id)', 'payments_count')
+      .where('payment.status = :status', { status: completedStatus })
+      .andWhere('payment.paid_at >= :monthStart', { monthStart })
+      .groupBy('payment.currency')
+      .getRawMany();
+
+    const paymentStatusRows = await this.subscriptionPaymentRepository
+      .createQueryBuilder('payment')
+      .select('payment.status', 'status')
+      .addSelect('COUNT(payment.id)', 'total')
+      .groupBy('payment.status')
+      .getRawMany();
+
+    const normalizeMoneyRows = (
+      rows: { currency: string; total: string; payments_count: string }[],
+    ) =>
+      rows.map((row) => ({
+        currency: row.currency,
+        total: Number(row.total),
+        payments_count: Number(row.payments_count),
+      }));
+
+    return {
+      generated_at: new Date(),
+      total_revenue: normalizeMoneyRows(totalRevenueRows),
+      current_month_revenue: normalizeMoneyRows(currentMonthRevenueRows),
+      payment_status_counts: paymentStatusRows.map(
+        (row: { status: string; total: string }) => ({
+          status: row.status,
+          total: Number(row.total),
+        }),
+      ),
+    };
   }
 
   private async findRestaurantOrFail(restaurantId: string) {

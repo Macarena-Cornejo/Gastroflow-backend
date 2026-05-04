@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, LessThanOrEqual, Repository } from 'typeorm';
+import { Between, LessThan, LessThanOrEqual, Repository } from 'typeorm';
 import { MailService } from '../mail/mail.service';
 import { Subscription } from './entities/subscription.entity';
 import { SubscriptionStatus } from './enums/subscription-status.enum';
@@ -29,8 +29,30 @@ export class SubscriptionsCronService {
   async handleSubscriptionReminders() {
     this.logger.log('Running subscription reminders cron...');
 
+    await this.expireOverdueSubscriptions();
     await this.createReminderLogs();
     await this.processPendingLogs();
+  }
+
+  private async expireOverdueSubscriptions() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const result = await this.subscriptionRepository.update(
+      {
+        status: SubscriptionStatus.ACTIVE,
+        end_date: LessThan(today),
+      },
+      {
+        status: SubscriptionStatus.EXPIRED,
+      },
+    );
+
+    const expiredCount = result.affected ?? 0;
+
+    if (expiredCount > 0) {
+      this.logger.log(`Expired ${expiredCount} overdue subscriptions`);
+    }
   }
 
   private async createReminderLogs() {
