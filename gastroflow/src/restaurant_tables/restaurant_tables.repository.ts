@@ -92,6 +92,51 @@ export class RestaurantTablesRepository {
     }));
   }
 
+  async getWaiterAssignedTables(
+    restaurantId: string,
+    waiterId: string,
+    date?: string,
+    time?: string,
+  ) {
+    const assignedTables = await this.restaurantsTablesRepository.find({
+      where: {
+        restaurant: { id: restaurantId },
+        is_active: true,
+        assigned_waiter_id: waiterId,
+      },
+      order: { table_number: 'ASC' },
+    });
+
+    if (!date || !time || !assignedTables.length) {
+      return assignedTables;
+    }
+
+    const startTime = new Date(`${date}T${time}:00.000Z`);
+    const endTime = new Date(startTime.getTime() + (2 * 60 + 15) * 60 * 1000);
+
+    const assignedTableIds = assignedTables.map((table) => table.id);
+
+    const occupiedTables = await this.reservationsRepository.find({
+      where: {
+        restaurant: { id: restaurantId },
+        table: { id: In(assignedTableIds) },
+        status: In([ReservationStatus.CONFIRMED, ReservationStatus.PENDING]),
+        start_time: LessThan(endTime),
+        end_time: MoreThan(startTime),
+      },
+      relations: ['table'],
+    });
+
+    const occupiedIds = new Set(occupiedTables.map((reservation) => reservation.table.id));
+
+    return assignedTables.map((table) => ({
+      ...table,
+      status: occupiedIds.has(table.id)
+        ? RestaurantTableStatus.RESERVED
+        : RestaurantTableStatus.AVAILABLE,
+    }));
+  }
+
   async assignWaiterToTable(
     restaurantId: string,
     tableId: string,
