@@ -22,6 +22,20 @@ export class RestaurantTablesService {
     return this.restaurantsTablesRepository.getRestaurantWaiters(restaurantId);
   }
 
+  async getWaiterAssignedTables(
+    restaurantId: string,
+    waiterId: string,
+    date?: string,
+    time?: string,
+  ) {
+    return this.restaurantsTablesRepository.getWaiterAssignedTables(
+      restaurantId,
+      waiterId,
+      date,
+      time,
+    );
+  }
+
   async assignWaiterToTable(
     restaurantId: string,
     tableId: string,

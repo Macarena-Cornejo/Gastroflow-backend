@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { RestaurantTablesService } from './restaurant_tables.service';
 import { RestaurantTableStatus } from '../common/restaurant_table.enum';
+import { GetUser } from '../decorators/get-user.decorator';
 import { Role } from '../decorators/roles.decorators';
 import { UserRole } from '../common/user.enums';
 import { RolesGuard } from '../auth/guards/Role.guard';
@@ -47,6 +48,31 @@ export class RestaurantTablesController {
         'No tienes permiso para administrar mesas de este restaurante',
       );
     }
+  }
+
+  @UseGuards(AuthGuard, RolesGuard)
+  @Role(UserRole.WAITER)
+  @ApiOperation({ summary: 'Obtener mesas asignadas al mozo autenticado' })
+  @ApiParam({ name: 'restaurantId', type: 'string', format: 'uuid' })
+  @ApiResponse({ status: 200, description: 'Mesas asignadas obtenidas correctamente' })
+  @Get('my-assigned')
+  async getMyAssignedTables(
+    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @GetUser() user: { id: string; restaurant_id?: string },
+    @Query('date') date?: string,
+    @Query('time') time?: string,
+  ) {
+    this.validateRestaurantAccess(
+      { user: { restaurant_id: user.restaurant_id } },
+      restaurantId,
+    );
+
+    return this.restaurantTablesService.getWaiterAssignedTables(
+      restaurantId,
+      user.id,
+      date,
+      time,
+    );
   }
 
   @ApiOperation({ summary: 'Obtener todas las mesas de un restaurante' })
