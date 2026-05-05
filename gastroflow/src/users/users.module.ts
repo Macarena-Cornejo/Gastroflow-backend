@@ -16,6 +16,6 @@ import { Reservation } from '../reservations/entities/reservation.entity';
   ],
   controllers: [UsersController, EmployeesController],
   providers: [UsersService, UsersRepository],
-  exports: [UsersRepository],
+  exports: [UsersRepository, UsersService],
 })
 export class UsersModule {}

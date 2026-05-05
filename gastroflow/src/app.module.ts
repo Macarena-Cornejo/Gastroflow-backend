@@ -24,6 +24,7 @@ import { RestaurantVerificationModule } from './restaurant-verification/restaura
 import { PlatformModule } from './plataform/platform.module';
 import { ChatModule } from './chat/chat.module';
 import { CashRegisterModule } from './cash-register/cash-register.module';
+import { AdminChatModule } from './admin-chat/admin-chat.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { CashRegisterModule } from './cash-register/cash-register.module';
     UsersModule,
     AuthModule,
     ChatModule,
+    AdminChatModule,
     FileUploadModule,
     MenuModule,
     RestaurantModule,
