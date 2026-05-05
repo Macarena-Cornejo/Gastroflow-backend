@@ -9,12 +9,15 @@ import { In, LessThan, MoreThan, Repository } from 'typeorm';
 import { RestaurantTableStatus } from '../common/restaurant_table.enum';
 import { Restaurant } from '../restaurants/entities/restaurant.entity';
 import {
+  AssignWaiterToTableDto,
   CreateTableDto,
   UpdateTableDto,
   UpdateTablesLayoutDto,
 } from './dto/restaurant_table.dto';
 import { Reservation } from '../reservations/entities/reservation.entity';
 import { ReservationStatus } from '../common/reservation.enum';
+import { User } from '../users/entities/user.entity';
+import { UserRole } from '../common/user.enums';
 
 export const tablesSeed = [
   { table_number: 1, capacity: 2, zone: 'Interior' },
@@ -38,7 +41,145 @@ export class RestaurantTablesRepository {
     private restaurantsRepository: Repository<Restaurant>,
     @InjectRepository(Reservation)
     private reservationsRepository: Repository<Reservation>,
+
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
   ) {}
+
+  async getTablesAssignments(restaurantId: string) {
+    const tables = await this.restaurantsTablesRepository.find({
+      where: { restaurant: { id: restaurantId }, is_active: true },
+      relations: ['assigned_waiter'],
+      order: { table_number: 'ASC' },
+    });
+
+    return tables.map((table) => ({
+      id: table.id,
+      table_number: table.table_number,
+      zone: table.zone,
+      capacity: table.capacity,
+      status: table.status,
+      is_active: table.is_active,
+      assigned_waiter: table.assigned_waiter
+        ? {
+            id: table.assigned_waiter.id,
+            first_name: table.assigned_waiter.first_name,
+            last_name: table.assigned_waiter.last_name,
+            email: table.assigned_waiter.email,
+          }
+        : null,
+      updated_at: table.updated_at,
+    }));
+  }
+
+  async getRestaurantWaiters(restaurantId: string) {
+    const waiters = await this.usersRepository.find({
+      where: {
+        restaurant_id: restaurantId,
+        role: UserRole.WAITER,
+        is_active: true,
+      },
+      order: {
+        first_name: 'ASC',
+      },
+    });
+
+    return waiters.map((waiter) => ({
+      id: waiter.id,
+      first_name: waiter.first_name,
+      last_name: waiter.last_name,
+      email: waiter.email,
+    }));
+  }
+
+  async assignWaiterToTable(
+    restaurantId: string,
+    tableId: string,
+    dto: AssignWaiterToTableDto,
+  ) {
+    const table = await this.restaurantsTablesRepository.findOne({
+      where: { id: tableId, restaurant: { id: restaurantId } },
+      relations: ['assigned_waiter'],
+    });
+
+    if (!table) {
+      throw new NotFoundException('Mesa no encontrada');
+    }
+
+    if (!table.is_active) {
+      throw new BadRequestException('No se puede asignar una mesa inactiva');
+    }
+
+    const waiter = await this.usersRepository.findOne({
+      where: {
+        id: dto.waiter_id,
+        restaurant_id: restaurantId,
+        role: UserRole.WAITER,
+        is_active: true,
+      },
+    });
+
+    if (!waiter) {
+      throw new NotFoundException(
+        'Mozo no encontrado o no pertenece al restaurante',
+      );
+    }
+
+    table.assigned_waiter_id = waiter.id;
+    table.assigned_waiter = waiter;
+
+    const saved = await this.restaurantsTablesRepository.save(table);
+
+    return {
+      message: 'Mozo asignado correctamente',
+      data: {
+        table_id: saved.id,
+        table_number: saved.table_number,
+        waiter: {
+          id: waiter.id,
+          first_name: waiter.first_name,
+          last_name: waiter.last_name,
+          email: waiter.email,
+        },
+      },
+    };
+  }
+
+  async unassignWaiterFromTable(restaurantId: string, tableId: string) {
+    const table = await this.restaurantsTablesRepository.findOne({
+      where: { id: tableId, restaurant: { id: restaurantId } },
+      relations: ['assigned_waiter'],
+    });
+
+    if (!table) {
+      throw new NotFoundException('Mesa no encontrada');
+    }
+
+    if (!table.assigned_waiter_id) {
+      return {
+        message: 'La mesa ya estaba sin mozo asignado',
+        data: {
+          table_id: table.id,
+          table_number: table.table_number,
+          waiter: null,
+        },
+      };
+    }
+
+    table.assigned_waiter_id = null;
+    table.assigned_waiter = null;
+
+    const saved = await this.restaurantsTablesRepository.save(table);
+
+    return {
+      message: 'Asignación removida correctamente',
+      data: {
+        table_id: saved.id,
+        table_number: saved.table_number,
+        waiter: null,
+      },
+    };
+  }
 
   async getAvailableTables(restaurantId: string, date: string, time: string) {
     console.log('getAvailableTables:', { restaurantId, date, time });

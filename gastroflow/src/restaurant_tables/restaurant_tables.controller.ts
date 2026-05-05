@@ -25,6 +25,7 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import {
+  AssignWaiterToTableDto,
   CreateTableDto,
   UpdateTableDto,
   UpdateTablesLayoutDto,
@@ -64,6 +65,75 @@ export class RestaurantTablesController {
       restaurantId,
       date,
       time,
+    );
+  }
+
+  @UseGuards(AuthGuard, RolesGuard)
+  @Role(UserRole.REST_ADMIN, UserRole.CASHIER)
+  @ApiOperation({ summary: 'Listar mesas con mozo asignado' })
+  @ApiParam({ name: 'restaurantId', type: 'string', format: 'uuid' })
+  @ApiResponse({ status: 200, description: 'Asignaciones obtenidas correctamente' })
+  @Get('assignments')
+  async getTablesAssignments(
+    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @Req() req: { user?: { restaurant_id?: string } },
+  ) {
+    this.validateRestaurantAccess(req, restaurantId);
+    return this.restaurantTablesService.getTablesAssignments(restaurantId);
+  }
+
+  @UseGuards(AuthGuard, RolesGuard)
+  @Role(UserRole.REST_ADMIN, UserRole.CASHIER)
+  @ApiOperation({ summary: 'Listar mozos activos del restaurante' })
+  @ApiParam({ name: 'restaurantId', type: 'string', format: 'uuid' })
+  @ApiResponse({ status: 200, description: 'Mozos obtenidos correctamente' })
+  @Get('waiters')
+  async getRestaurantWaiters(
+    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @Req() req: { user?: { restaurant_id?: string } },
+  ) {
+    this.validateRestaurantAccess(req, restaurantId);
+    return this.restaurantTablesService.getRestaurantWaiters(restaurantId);
+  }
+
+  @UseGuards(AuthGuard, RolesGuard)
+  @Role(UserRole.REST_ADMIN, UserRole.CASHIER)
+  @ApiOperation({ summary: 'Asignar un mozo a una mesa' })
+  @ApiParam({ name: 'restaurantId', type: 'string', format: 'uuid' })
+  @ApiParam({ name: 'tableId', type: 'string', format: 'uuid' })
+  @ApiBody({ type: AssignWaiterToTableDto })
+  @ApiResponse({ status: 200, description: 'Mozo asignado correctamente' })
+  @Patch(':tableId/assign-waiter')
+  async assignWaiterToTable(
+    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @Param('tableId', ParseUUIDPipe) tableId: string,
+    @Body() dto: AssignWaiterToTableDto,
+    @Req() req: { user?: { restaurant_id?: string } },
+  ) {
+    this.validateRestaurantAccess(req, restaurantId);
+    return this.restaurantTablesService.assignWaiterToTable(
+      restaurantId,
+      tableId,
+      dto,
+    );
+  }
+
+  @UseGuards(AuthGuard, RolesGuard)
+  @Role(UserRole.REST_ADMIN, UserRole.CASHIER)
+  @ApiOperation({ summary: 'Quitar mozo asignado de una mesa' })
+  @ApiParam({ name: 'restaurantId', type: 'string', format: 'uuid' })
+  @ApiParam({ name: 'tableId', type: 'string', format: 'uuid' })
+  @ApiResponse({ status: 200, description: 'Asignación removida correctamente' })
+  @Patch(':tableId/unassign-waiter')
+  async unassignWaiterFromTable(
+    @Param('restaurantId', ParseUUIDPipe) restaurantId: string,
+    @Param('tableId', ParseUUIDPipe) tableId: string,
+    @Req() req: { user?: { restaurant_id?: string } },
+  ) {
+    this.validateRestaurantAccess(req, restaurantId);
+    return this.restaurantTablesService.unassignWaiterFromTable(
+      restaurantId,
+      tableId,
     );
   }
 
