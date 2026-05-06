@@ -12,6 +12,8 @@ import { MailService } from '../mail/mail.service';
 import { Subscription } from '../subscriptions/entities/subscription.entity';
 import { SubscriptionStatus } from '../subscriptions/enums/subscription-status.enum';
 import { PlanType } from '../subscriptions/enums/plan-type.enum';
+import { SubscriptionPayment } from '../subscriptions_payments/entities/subscription_payment.entity';
+import { SubscriptionPaymentStatus } from '../common/subscription_payment.enum';
 
 @Injectable()
 export class PlatformService {
@@ -24,6 +26,9 @@ export class PlatformService {
 
     @InjectRepository(Subscription)
     private readonly subscriptionRepository: Repository<Subscription>,
+
+    @InjectRepository(SubscriptionPayment)
+    private readonly subscriptionPaymentRepository: Repository<SubscriptionPayment>,
 
     private readonly mailService: MailService,
   ) {}
@@ -66,11 +71,75 @@ export class PlatformService {
   }
 
   async getSubscriptionRevenueMetrics() {
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+    const totalRevenueRaw = await this.subscriptionPaymentRepository
+      .createQueryBuilder('payment')
+      .select('payment.currency', 'currency')
+      .addSelect('COALESCE(SUM(payment.amount), 0)', 'total')
+      .addSelect('COUNT(payment.id)', 'payments_count')
+      .where('payment.status = :completedStatus', {
+        completedStatus: SubscriptionPaymentStatus.COMPLETED,
+      })
+      .groupBy('payment.currency')
+      .orderBy('payment.currency', 'ASC')
+      .getRawMany<{
+        currency: string;
+        total: string;
+        payments_count: string;
+      }>();
+
+    const currentMonthRevenueRaw = await this.subscriptionPaymentRepository
+      .createQueryBuilder('payment')
+      .select('payment.currency', 'currency')
+      .addSelect('COALESCE(SUM(payment.amount), 0)', 'total')
+      .addSelect('COUNT(payment.id)', 'payments_count')
+      .where('payment.status = :completedStatus', {
+        completedStatus: SubscriptionPaymentStatus.COMPLETED,
+      })
+      .andWhere('COALESCE(payment.paid_at, payment.created_at) >= :currentMonthStart', {
+        currentMonthStart,
+      })
+      .andWhere('COALESCE(payment.paid_at, payment.created_at) < :nextMonthStart', {
+        nextMonthStart,
+      })
+      .groupBy('payment.currency')
+      .orderBy('payment.currency', 'ASC')
+      .getRawMany<{
+        currency: string;
+        total: string;
+        payments_count: string;
+      }>();
+
+    const paymentStatusCountsRaw = await this.subscriptionPaymentRepository
+      .createQueryBuilder('payment')
+      .select('payment.status', 'status')
+      .addSelect('COUNT(payment.id)', 'total')
+      .groupBy('payment.status')
+      .orderBy('payment.status', 'ASC')
+      .getRawMany<{
+        status: string;
+        total: string;
+      }>();
+
     return {
-      generated_at: new Date().toISOString(),
-      total_revenue: [],
-      current_month_revenue: [],
-      payment_status_counts: [],
+      generated_at: now.toISOString(),
+      total_revenue: totalRevenueRaw.map((item) => ({
+        currency: item.currency,
+        total: Number(item.total),
+        payments_count: Number(item.payments_count),
+      })),
+      current_month_revenue: currentMonthRevenueRaw.map((item) => ({
+        currency: item.currency,
+        total: Number(item.total),
+        payments_count: Number(item.payments_count),
+      })),
+      payment_status_counts: paymentStatusCountsRaw.map((item) => ({
+        status: item.status,
+        total: Number(item.total),
+      })),
     };
   }
 
