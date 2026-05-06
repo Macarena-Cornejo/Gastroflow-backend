@@ -5,6 +5,10 @@ export const environment = {
   HOST: process.env.HOST || 'localhost',
   PORT: process.env.PORT || 3000,
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3001',
+  FRONTEND_AUTH_REDIRECT_URL:
+    process.env.FRONTEND_AUTH_REDIRECT_URL ||
+    process.env.FRONTEND_URL?.split(',')[0]?.trim() ||
+    'http://localhost:3001',
 
   DATABASE_URL: process.env.DATABASE_URL,
 
