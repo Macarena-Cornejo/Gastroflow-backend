@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { User } from './entities/user.entity';
@@ -42,6 +43,8 @@ interface RequestUserPayload {
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     private readonly userRepository: UsersRepository,
     private readonly mailService: MailService,
@@ -137,12 +140,18 @@ export class UsersService {
       where: { id: restaurantId },
     });
 
-    await this.mailService.sendEmployeeCreatedEmail({
-      to: employee.email,
-      name: `${employee.first_name} ${employee.last_name}`,
-      role: employee.role,
-      restaurantName: restaurant?.name ?? 'tu restaurante',
-    });
+    this.mailService
+      .sendEmployeeCreatedEmail({
+        to: employee.email,
+        name: `${employee.first_name} ${employee.last_name}`,
+        role: employee.role,
+        restaurantName: restaurant?.name ?? 'tu restaurante',
+      })
+      .catch(() => {
+        this.logger.warn(
+          `Empleado ${employee.id} creado, pero fallo el correo de bienvenida`,
+        );
+      });
 
     return this.toEmployeeResponse(employee);
   }
@@ -162,11 +171,17 @@ export class UsersService {
       isActive,
     );
     if (!isActive) {
-      await this.mailService.sendEmployeeDismissedEmail({
-        to: updatedEmployee.email,
-        name: updatedEmployee.first_name,
-        role: this.toEmployeeRole(updatedEmployee.role),
-      });
+      this.mailService
+        .sendEmployeeDismissedEmail({
+          to: updatedEmployee.email,
+          name: updatedEmployee.first_name,
+          role: this.toEmployeeRole(updatedEmployee.role),
+        })
+        .catch(() => {
+          this.logger.warn(
+            `Empleado ${updatedEmployee.id} desactivado, pero fallo el correo`,
+          );
+        });
     }
 
     return this.toEmployeeResponse(updatedEmployee);
