@@ -88,18 +88,19 @@ export class CreateUserDto {
   confirmPassword!: string;
 
   @ApiHideProperty()
-  @IsUUID() //!Verificar cual va a ser el identificador con el que se va a asociar user y el restaurante
-  @IsEmpty()
+  @IsEmpty({
+    message: 'restaurant_id no debe enviarse en el registro público',
+  })
   restaurant_id!: string;
 
   @ApiHideProperty()
-  @IsEmpty() //! Verificar quien va a definir rol
-  @IsEnum(UserRole)
+  @IsEmpty({ message: 'role no debe enviarse en el registro público' })
   role!: UserRole;
 
   @ApiHideProperty()
-  @IsEmpty()
-  @IsEnum(AuthProvider)
+  @IsEmpty({
+    message: 'auth_provider no debe enviarse en el registro público',
+  })
   auth_provider!: AuthProvider;
 
   @IsString()
