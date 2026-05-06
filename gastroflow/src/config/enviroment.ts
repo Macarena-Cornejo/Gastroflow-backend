@@ -1,5 +1,9 @@
 import * as dotenv from 'dotenv';
+import type { SignOptions } from 'jsonwebtoken';
 dotenv.config({ path: '.env.development' });
+
+const jwtExpiresIn = (process.env.JWT_EXPIRES_IN ||
+  '1h') as SignOptions['expiresIn'];
 
 export const environment = {
   HOST: process.env.HOST || 'localhost',
@@ -17,6 +21,7 @@ export const environment = {
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
 
   JWT_SECRET: process.env.JWT_SECRET,
+  JWT_EXPIRES_IN: jwtExpiresIn,
 
   STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,

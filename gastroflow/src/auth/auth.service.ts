@@ -19,6 +19,7 @@ import {
 import { Restaurant } from '../restaurants/entities/restaurant.entity';
 import { DataSource } from 'typeorm';
 import { RestaurantVerificationStatus } from '../common/restaurant-verification-status.enum';
+import { environment } from '../config/enviroment';
 
 @Injectable()
 export class AuthService {
@@ -390,7 +391,7 @@ export class AuthService {
       imgUrl: user.imgUrl ?? null,
     };
     const token = this.jwtService.sign(payload, {
-      expiresIn: '1h',
+      expiresIn: environment.JWT_EXPIRES_IN,
     });
 
     return {
