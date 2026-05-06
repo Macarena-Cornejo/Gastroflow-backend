@@ -8,10 +8,12 @@ import { User } from './entities/user.entity';
 import { UsersRepository } from './user.repository';
 import {
   AdminResetPasswordDto,
+  ChangePasswordDto,
   ConfirmPasswordResetDto,
   CreateEmployeeDto,
   RequestPasswordResetDto,
   ResetPasswordDto,
+  UpdateProfileDto,
   UpdateUserDto,
 } from './dto/user.dto';
 import { UserRole } from '../common/user.enums';
@@ -81,6 +83,14 @@ export class UsersService {
 
   async resetPassword(id: string, dto: ResetPasswordDto) {
     return this.userRepository.resetPassword(id, dto);
+  }
+
+  async updateProfile(id: string, dto: UpdateProfileDto) {
+    return this.userRepository.updateProfile(id, dto);
+  }
+
+  async changePassword(id: string, dto: ChangePasswordDto) {
+    return this.userRepository.changePassword(id, dto);
   }
 
   async getEmployees(

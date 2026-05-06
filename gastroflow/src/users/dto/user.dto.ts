@@ -245,3 +245,37 @@ export class ConfirmPasswordResetDto {
   @ApiProperty({ example: 'NewPassword01!' })
   confirmNewPassword!: string;
 }
+
+export class UpdateProfileDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  @ApiPropertyOptional({ example: '1122334455' })
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  @ApiPropertyOptional({ example: 'Av. Siempre Viva 123, Springfield' })
+  address?: string;
+}
+
+export class ChangePasswordDto {
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty({ example: 'OldPassword01!' })
+  currentPassword!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(8)
+  @MaxLength(15)
+  @IsStrongPassword({
+    minLowercase: 1,
+    minUppercase: 1,
+    minNumbers: 1,
+    minSymbols: 1,
+  })
+  @ApiProperty({ example: 'NewPassword01!' })
+  newPassword!: string;
+}
