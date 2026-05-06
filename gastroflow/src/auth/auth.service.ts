@@ -406,6 +406,8 @@ export class AuthService {
         restaurant_id: user.restaurant_id ?? null,
         requires_restaurant_onboarding: requiresRestaurantOnboarding,
         imgUrl: user.imgUrl,
+        phone: user.phone ?? null,
+        address: user.address ?? null,
       },
     };
   }
