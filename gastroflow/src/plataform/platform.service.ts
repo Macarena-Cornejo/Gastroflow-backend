@@ -216,13 +216,15 @@ export class PlatformService {
     if (ownerEmail) {
       await this.mailService.sendGenericNotification(
         ownerEmail,
-        'Restaurante aprobado 🎉',
+        'Restaurante aprobado ðŸŽ‰',
         `Tu restaurante "${restaurant.name}" ha sido aprobado. Ya puedes acceder al sistema.`,
       );
     }
 
     return {
-      message: existingActiveSubscription ? 'Restaurante aprobado correctamente; ya exist�a una suscripci�n activa' : 'Restaurante aprobado y suscripci�n creada correctamente',
+      message: existingActiveSubscription
+        ? 'Restaurante aprobado correctamente; ya existía una suscripción activa'
+        : 'Restaurante aprobado y suscripción creada correctamente',
     };
   }
 
