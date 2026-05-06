@@ -223,8 +223,8 @@ export class PlatformService {
 
     return {
       message: existingActiveSubscription
-        ? 'Restaurante aprobado 🎉'
-        : 'Restaurante aprobado 🎉',
+        ? 'Restaurante aprobado correctamente; ya existía una suscripción activa'
+        : 'Restaurante aprobado y suscripción creada correctamente',
     };
   }
 
