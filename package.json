@@ -1,0 +1,18 @@
+{
+  "scripts": {
+    "start": "npm --prefix ./gastroflow run start",
+    "start:dev": "npm --prefix ./gastroflow run start:dev",
+    "start:debug": "npm --prefix ./gastroflow run start:debug",
+    "build": "npm --prefix ./gastroflow run build",
+    "test": "npm --prefix ./gastroflow run test",
+    "db:up": "docker compose -f docker-compose.dev.yml up -d postgres",
+    "db:down": "docker compose -f docker-compose.dev.yml down",
+    "db:logs": "docker compose -f docker-compose.dev.yml logs -f postgres",
+    "start:local": "DATABASE_URL=postgresql://postgres:postgres@localhost:5433/gastroflow_local npm --prefix ./gastroflow run start",
+    "start:local:dev": "DATABASE_URL=postgresql://postgres:postgres@localhost:5433/gastroflow_local npm --prefix ./gastroflow run start:dev"
+  },
+  "dependencies": {
+    "@nestjs/axios": "^4.0.1",
+    "axios": "^1.18.1"
+  }
+}

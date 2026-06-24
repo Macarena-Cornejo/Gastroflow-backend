@@ -26,6 +26,9 @@ import { ChatModule } from './chat/chat.module';
 import { CashRegisterModule } from './cash-register/cash-register.module';
 import { AdminChatModule } from './admin-chat/admin-chat.module';
 import { MetricsModule } from './metrics/metrics.module';
+import { UserProxyModule } from './user-proxy/user-proxy.module';
+
+const enableUserProxy = process.env.ENABLE_USER_PROXY === 'true';
 
 @Module({
   imports: [
@@ -44,8 +47,7 @@ import { MetricsModule } from './metrics/metrics.module';
       useFactory: (ConfigService: ConfigService) =>
         ConfigService.get('typeorm')!,
     }),
-    UsersModule,
-    AuthModule,
+    ...(enableUserProxy ? [UserProxyModule] : [UsersModule, AuthModule]),
     ChatModule,
     AdminChatModule,
     FileUploadModule,
