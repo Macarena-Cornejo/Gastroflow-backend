@@ -27,8 +27,9 @@ import { CashRegisterModule } from './cash-register/cash-register.module';
 import { AdminChatModule } from './admin-chat/admin-chat.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { UserProxyModule } from './user-proxy/user-proxy.module';
+import { environment } from './config/enviroment';
 
-const enableUserProxy = process.env.ENABLE_USER_PROXY === 'true';
+const enableUserProxy = environment.ENABLE_USER_PROXY;
 
 @Module({
   imports: [

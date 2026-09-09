@@ -4,6 +4,8 @@ dotenv.config({ path: '.env.development' });
 
 const jwtExpiresIn = (process.env.JWT_EXPIRES_IN ||
   '1h') as SignOptions['expiresIn'];
+const enableUserProxy =
+  process.env.ENABLE_USER_PROXY?.trim().toLowerCase() === 'true';
 
 export const environment = {
   HOST: process.env.HOST || 'localhost',
@@ -38,4 +40,6 @@ export const environment = {
   STRIPE_PRICE_PREMIUM_YEARLY: process.env.STRIPE_PRICE_PREMIUM_YEARLY,
   STRIPE_WEBHOOK_SECRET_SUBSCRIPTIONS:
     process.env.STRIPE_WEBHOOK_SECRET_SUBSCRIPTIONS,
+
+  ENABLE_USER_PROXY: enableUserProxy,
 };
